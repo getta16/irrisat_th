@@ -1,11 +1,12 @@
 /** ตรวจว่าการปิดบังเมฆด้วยแบนด์ SCL ของ Sentinel-2 ทำงานจริงหรือไม่ */
 import ee from '@google/earthengine'
 import { initEarthEngine } from '../services/gee.js'
-import { getField, listFields } from '../services/store.js'
+import { getField, listFields, initStore } from '../services/store.js'
 
 const evaluate = (o) =>
   new Promise((res, rej) => o.evaluate((v, e) => (e ? rej(new Error(e)) : res(v))))
 
+await initStore()
 const state = await initEarthEngine()
 if (!state.ready) {
   console.error('Earth Engine ไม่พร้อม:', state.error)

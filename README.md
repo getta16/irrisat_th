@@ -203,20 +203,123 @@ service account key ซึ่งเป็นความลับ — เอา�
 
 ### ให้หน้าเว็บบน Pages ใช้งานได้เต็มรูปแบบ
 
-ต้องโฮสต์ `server/` ไว้ที่อื่นก่อน (Render / Railway / Fly.io / VPS ก็ได้) โดยตั้ง
-`GEE_SERVICE_ACCOUNT_JSON` เป็น secret ที่นั่น — สะดวกกว่าการวางไฟล์คีย์ ตอน deploy
-เสร็จแล้วกลับมาที่ repo นี้ → **Settings → Secrets and variables → Actions → Variables**
-เพิ่มตัวแปรชื่อ `VITE_API_BASE` ค่าเป็น URL ของ API เช่น
+ต้องเอา `server/` ไปรันบน Cloud Run ก่อน แล้วชี้ `VITE_API_BASE` มาที่นั่น — ดูหัวข้อถัดไป
+
+---
+
+## โฮสต์ API บน Google Cloud Run
+
+ใช้โปรเจกต์เดียวกับที่เปิด Earth Engine ไว้แล้ว จึงไม่ต้องสร้าง service account ใหม่
+
+### สิ่งที่ต้องมีก่อน
+
+- ผูกบัญชีเรียกเก็บเงิน (billing) กับโปรเจกต์ — Cloud Run มีโควตาฟรีต่อเดือนอยู่แล้ว
+  แต่ Google บังคับให้ผูกบัตรก่อนถึงจะเปิดใช้ได้
+- ลง gcloud CLI: `winget install Google.CloudSDK` แล้วเปิด PowerShell ใหม่
+- `gcloud auth login` แล้ว `gcloud config set project klongkloong`
+
+### 1. เปิด API ที่ต้องใช้
+
+```powershell
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com `
+  artifactregistry.googleapis.com secretmanager.googleapis.com storage.googleapis.com
+```
+
+### 2. สร้าง bucket เก็บข้อมูลแปลง
+
+ดิสก์ของ Cloud Run หายทุกครั้งที่รีสตาร์ต ข้อมูลแปลงจึงต้องไปอยู่บน Cloud Storage
+(ชื่อ bucket ต้องไม่ซ้ำกับใครทั้งโลก — เปลี่ยนได้ตามใจ)
+
+```powershell
+gcloud storage buckets create gs://klongkloong-irrisat-data --location=asia-southeast1
+```
+
+ถ้ามีข้อมูลแปลงเดิมในเครื่องอยู่แล้ว อัปขึ้นไปก่อนได้:
+
+```powershell
+gcloud storage cp server/data/fields.json gs://klongkloong-irrisat-data/fields.json
+```
+
+### 3. เก็บคีย์ service account ไว้ใน Secret Manager
+
+อย่าใส่คีย์เป็น env var ธรรมดาและอย่า commit ลง git — เก็บเป็น secret แล้วให้ Cloud Run
+อ่านตอนรันเท่านั้น
+
+```powershell
+gcloud secrets create irrisat-gee-key --data-file="D:GIS_GETscodekeyklongkloong-66f17875c00e.json"
+```
+
+### 4. ให้สิทธิ์ service account
+
+รัน Cloud Run ด้วย service account ตัวเดียวกับที่ลงทะเบียน Earth Engine ไว้
+(`irrisat-th@klongkloong.iam.gserviceaccount.com`) จะได้เข้าถึง bucket ได้เลยโดยไม่ต้องมีคีย์อีกชุด
+
+```powershell
+$SA = "irrisat-th@klongkloong.iam.gserviceaccount.com"
+
+gcloud storage buckets add-iam-policy-binding gs://klongkloong-irrisat-data `
+  --member="serviceAccount:$SA" --role="roles/storage.objectAdmin"
+
+gcloud secrets add-iam-policy-binding irrisat-gee-key `
+  --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
+```
+
+### 5. Deploy
+
+```powershell
+gcloud run deploy irrisat-api `
+  --source server `
+  --region asia-southeast1 `
+  --service-account "irrisat-th@klongkloong.iam.gserviceaccount.com" `
+  --set-secrets "GEE_SERVICE_ACCOUNT_JSON=irrisat-gee-key:latest" `
+  --set-env-vars "GEE_PROJECT=klongkloong,GCS_BUCKET=klongkloong-irrisat-data,ALLOW_DEMO=false" `
+  --memory 1Gi `
+  --timeout 300 `
+  --max-instances 1 `
+  --allow-unauthenticated
+```
+
+หมายเหตุแต่ละตัว:
+
+| ตัวเลือก | ทำไมต้องใส่ |
+| --- | --- |
+| `--source server` | build เฉพาะโฟลเดอร์ server/ ตาม `server/Dockerfile` |
+| `--max-instances 1` | ระบบเก็บข้อมูลแปลงไว้ในหน่วยความจำแล้วเขียนกลับ bucket ถ้ามีหลายอินสแตนซ์พร้อมกันจะเขียนทับกันเอง |
+| `--memory 1Gi` | shapefile ขนาดใหญ่กับการแปลงพิกัดกินแรมเกิน 512Mi ได้ |
+| `--timeout 300` | คำขอ Earth Engine ครั้งแรกของแปลงใหญ่ใช้เวลาหลายสิบวินาที |
+| `--allow-unauthenticated` | หน้าเว็บบน Pages เรียกตรงโดยไม่มีระบบล็อกอิน |
+| `ALLOW_DEMO=false` | บนของจริงอยากให้ error ชัด ๆ ดีกว่าเงียบ ๆ แล้วส่งข้อมูลจำลองให้ |
+
+เสร็จแล้ว gcloud จะพิมพ์ URL ออกมา เช่น `https://irrisat-api-xxxxxxxx-as.a.run.app`
+ลองเช็คว่าเชื่อม Earth Engine ได้จริง:
+
+```powershell
+curl.exe https://irrisat-api-xxxxxxxx-as.a.run.app/api/status
+```
+
+ควรได้ `"mode":"earth-engine"` ถ้าได้ `"mode":"unavailable"` ให้ดูล็อกด้วย
+`gcloud run services logs read irrisat-api --region asia-southeast1`
+
+### 6. ชี้หน้าเว็บมาที่ API
+
+ที่ repo บน GitHub → **Settings → Secrets and variables → Actions → Variables** →
+**New repository variable** ชื่อ `VITE_API_BASE` ค่าเป็น URL ข้างบน **ต่อท้ายด้วย `/api`**
 
 ```
-https://irrisat-api.example.com/api
+https://irrisat-api-xxxxxxxx-as.a.run.app/api
 ```
 
-แล้วสั่ง run workflow ใหม่ หน้าเว็บบน Pages จะเรียก API ตัวนั้นแทน (server เปิด CORS
-ให้ทุกโดเมนอยู่แล้ว)
+แล้วไปแท็บ **Actions** → **Deploy to GitHub Pages** → **Run workflow** เพื่อ build ใหม่
+(ค่านี้ถูกฝังตอน build ต้อง deploy ใหม่ทุกครั้งที่เปลี่ยน)
 
-> **อย่า commit ไฟล์คีย์ service account หรือ `.env` ขึ้น GitHub เด็ดขาด**
-> `.gitignore` กันไว้ให้แล้ว แต่ถ้าหลุดขึ้นไป ต้องเข้าไปลบคีย์ตัวนั้นใน Google Cloud ทันที
+### เรื่องที่ควรรู้
+
+- **คำขอแรกช้า** — Cloud Run ปิดคอนเทนเนอร์เมื่อไม่มีคนใช้ คำขอแรกหลังพักจะรอ 10-30 วินาที
+  หน้าเว็บถามสถานะซ้ำได้นานถึง 1 นาทีอยู่แล้ว จึงรอจนติดเอง
+- **API เปิดให้ทุกคนเรียก** — ใครรู้ URL ก็ยิงได้ รวมถึงลบแปลงในระบบ และใช้โควตา
+  Earth Engine ของโปรเจกต์คุณ ถ้าจะจำกัด ให้ตั้ง `--ingress` หรือเพิ่มระบบยืนยันตัวตนภายหลัง
+- **ค่าใช้จ่าย** — โควตาฟรีของ Cloud Run ครอบคลุมการใช้งานส่วนตัวสบาย ๆ แต่ควรตั้ง
+  งบเตือนไว้ที่ Billing → Budgets & alerts กันเหนียว
 
 ---
 

@@ -4,8 +4,9 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import cors from 'cors'
 
-import { PORT } from './config.js'
+import { PORT, FIELDS_FILE, GCS_BUCKET, GCS_FIELDS_OBJECT } from './config.js'
 import { initEarthEngine, geeStatus } from './services/gee.js'
+import { initStore } from './services/store.js'
 import importRouter from './routes/import.js'
 import fieldsRouter from './routes/fields.js'
 import analysisRouter from './routes/analysis.js'
@@ -36,8 +37,14 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์', detail: String(err?.message || err) })
 })
 
+// โหลดข้อมูลแปลงให้เสร็จก่อนเปิดรับคำขอ ไม่อย่างนั้นคำขอแรกจะเห็นรายการว่าง
+const store = await initStore()
+
 app.listen(PORT, () => {
   console.log(`\n  IrriSAT-TH API  →  http://localhost:${PORT}`)
+  console.log(
+    `  ข้อมูลแปลง      →  ${store.where === 'gcs' ? `gs://${GCS_BUCKET}/${GCS_FIELDS_OBJECT}` : FIELDS_FILE} (${store.count} แปลง)`
+  )
   initEarthEngine().then(() => {
     const s = geeStatus()
     if (s.ready) console.log(`  Earth Engine    →  พร้อมใช้งาน (project: ${s.project || 'default'})\n`)

@@ -21,6 +21,13 @@ export const GEE_KEY_PATH = process.env.GEE_SERVICE_ACCOUNT_KEY || ''
 export const GEE_KEY_JSON = process.env.GEE_SERVICE_ACCOUNT_JSON || ''
 export const GEE_PROJECT = process.env.GEE_PROJECT || ''
 
+// ── ที่เก็บข้อมูลแปลง ──────────────────────────────────────────────────
+// ปกติเก็บเป็นไฟล์ใน server/data/ แต่บน Cloud Run ดิสก์ของคอนเทนเนอร์หายทุกครั้ง
+// ที่รีสตาร์ต จึงต้องตั้ง GCS_BUCKET ให้ไปเก็บบน Google Cloud Storage แทน
+// (ยืนยันตัวตนด้วย service account ที่ผูกกับ Cloud Run เอง ไม่ต้องใช้ไฟล์คีย์)
+export const GCS_BUCKET = process.env.GCS_BUCKET || ''
+export const GCS_FIELDS_OBJECT = process.env.GCS_FIELDS_OBJECT || 'fields.json'
+
 // ถ้าเชื่อม GEE ไม่ได้ ให้สร้างข้อมูล NDVI จำลอง เพื่อให้ทดลอง UI ได้ทันที
 export const ALLOW_DEMO = String(process.env.ALLOW_DEMO || 'true') !== 'false'
 

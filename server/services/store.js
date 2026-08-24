@@ -1,33 +1,103 @@
 /**
- * เก็บข้อมูลแปลงลงไฟล์ JSON ไฟล์เดียว — พอสำหรับการใช้งานคนเดียว
+ * เก็บข้อมูลแปลงเป็น JSON ก้อนเดียว — พอสำหรับการใช้งานคนเดียว
  * ถ้าจะขยายเป็นหลายผู้ใช้ในอนาคต ให้เปลี่ยนเฉพาะไฟล์นี้เป็น SQLite/Postgres
+ *
+ * เก็บได้สองที่:
+ *   - ไฟล์ในเครื่อง (ค่าเริ่มต้น) — ใช้ตอนพัฒนา
+ *   - Google Cloud Storage (เมื่อตั้ง GCS_BUCKET) — จำเป็นตอนรันบน Cloud Run
+ *     เพราะดิสก์ของคอนเทนเนอร์หายทุกครั้งที่รีสตาร์ตหรือ deploy ใหม่
+ *
+ * อ่านจากสำเนาในหน่วยความจำเสมอ (เร็ว และทำให้ฟังก์ชันอ่านยังเป็น sync เหมือนเดิม)
+ * ส่วนการเขียนจะบันทึกลงที่เก็บจริงให้สำเร็จก่อน แล้วค่อยอัปเดตสำเนาในหน่วยความจำ
+ * ถ้าบันทึกพลาด สำเนาในหน่วยความจำจะยังตรงกับที่เก็บจริงอยู่
  */
 import fs from 'node:fs'
 import { randomUUID } from 'node:crypto'
-import { FIELDS_FILE } from '../config.js'
+import { FIELDS_FILE, GCS_BUCKET, GCS_FIELDS_OBJECT } from '../config.js'
 
-function readAll() {
+let cache = []
+let loaded = false
+/** โหลดตอนเริ่มระบบไม่สำเร็จ — ห้ามเขียนทับ ไม่อย่างนั้นข้อมูลเดิมจะหายทั้งก้อน */
+let loadFailed = false
+let remote = null
+
+async function gcsFile() {
+  if (remote) return remote
+  const { Storage } = await import('@google-cloud/storage')
+  remote = new Storage().bucket(GCS_BUCKET).file(GCS_FIELDS_OBJECT)
+  return remote
+}
+
+function readLocal() {
+  if (!fs.existsSync(FIELDS_FILE)) return []
+  const raw = fs.readFileSync(FIELDS_FILE, 'utf8').trim()
+  return raw ? JSON.parse(raw) : []
+}
+
+/** ต้องเรียกครั้งเดียวตอนเริ่มระบบ ก่อนรับคำขอแรก */
+export async function initStore() {
+  if (loaded) return { count: cache.length, where: GCS_BUCKET ? 'gcs' : 'file' }
+
   try {
-    if (!fs.existsSync(FIELDS_FILE)) return []
-    const raw = fs.readFileSync(FIELDS_FILE, 'utf8').trim()
-    return raw ? JSON.parse(raw) : []
+    if (GCS_BUCKET) {
+      const file = await gcsFile()
+      const [exists] = await file.exists()
+      if (exists) {
+        const [buf] = await file.download()
+        cache = JSON.parse(buf.toString('utf8').trim() || '[]')
+      } else {
+        cache = []
+      }
+    } else {
+      cache = readLocal()
+    }
   } catch (e) {
-    console.error('อ่านไฟล์ข้อมูลแปลงไม่สำเร็จ:', e.message)
-    return []
+    // ปล่อยให้ระบบขึ้นต่อได้เพื่อให้ /api/status ยังตอบและวินิจฉัยได้
+    // แต่ล็อกการเขียนไว้ กันเขียนทับข้อมูลเดิมด้วยก้อนว่าง
+    loadFailed = true
+    cache = []
+    console.error('อ่านข้อมูลแปลงไม่สำเร็จ — ปิดการบันทึกไว้ก่อน:', e.message)
   }
+
+  loaded = true
+  return { count: cache.length, where: GCS_BUCKET ? 'gcs' : 'file', failed: loadFailed }
 }
 
 let queue = Promise.resolve()
 
-/** เขียนแบบ atomic (เขียนไฟล์ชั่วคราวแล้ว rename) และเข้าคิวกันเขียนชนกัน */
+/** บันทึกลงที่เก็บจริงแบบเข้าคิวกันเขียนชนกัน สำเร็จแล้วจึงอัปเดตสำเนาในหน่วยความจำ */
 function writeAll(fields) {
-  queue = queue.then(() => {
-    const tmp = `${FIELDS_FILE}.tmp`
-    fs.writeFileSync(tmp, JSON.stringify(fields, null, 2), 'utf8')
-    fs.renameSync(tmp, FIELDS_FILE)
-  })
-  return queue.then(() => fields)
+  const save = async () => {
+    if (loadFailed) {
+      throw new Error('อ่านข้อมูลแปลงเดิมไม่สำเร็จตอนเริ่มระบบ จึงไม่บันทึกทับ — ตรวจสิทธิ์ที่เก็บข้อมูลแล้วรีสตาร์ต')
+    }
+
+    const json = JSON.stringify(fields, null, 2)
+
+    if (GCS_BUCKET) {
+      const file = await gcsFile()
+      await file.save(json, { contentType: 'application/json; charset=utf-8', resumable: false })
+    } else {
+      // เขียนแบบ atomic (เขียนไฟล์ชั่วคราวแล้ว rename)
+      const tmp = `${FIELDS_FILE}.tmp`
+      fs.writeFileSync(tmp, json, 'utf8')
+      fs.renameSync(tmp, FIELDS_FILE)
+    }
+
+    cache = fields
+    return fields
+  }
+
+  // ต่อคิวไม่ว่างานก่อนหน้าจะสำเร็จหรือล้มเหลว และไม่ปล่อยให้ error ค้างอยู่ในคิว
+  const run = queue.then(save, save)
+  queue = run.then(
+    () => {},
+    () => {}
+  )
+  return run
 }
+
+const readAll = () => cache
 
 export const listFields = () => readAll()
 
@@ -80,8 +150,9 @@ export async function updateField(id, patch) {
     settings: { ...all[idx].settings, ...(patch.settings || {}) },
     updatedAt: new Date().toISOString(),
   }
-  all[idx] = merged
-  await writeAll(all)
+  const next = [...all]
+  next[idx] = merged
+  await writeAll(next)
   return merged
 }
 
