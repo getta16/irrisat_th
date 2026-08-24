@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.log
+
+# ข้อมูลแปลงที่ผู้ใช้บันทึกไว้ และคีย์ service account
+server/data/
+*-key.json
+*service-account*.json
+
+# การตั้งค่าเฉพาะเครื่อง
+.claude/settings.local.json

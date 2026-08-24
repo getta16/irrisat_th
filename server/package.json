@@ -1,0 +1,24 @@
+{
+  "name": "irrisat-th-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch-path=./index.js --watch-path=./config.js --watch-path=./routes --watch-path=./services --watch-preserve-output index.js",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@google/earthengine": "^1.5.30",
+    "@tmcw/togeojson": "^5.8.1",
+    "@turf/turf": "^7.2.0",
+    "@xmldom/xmldom": "^0.9.8",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jszip": "^3.10.1",
+    "multer": "^2.0.2",
+    "proj4": "^2.15.0",
+    "shpjs": "^6.1.1"
+  }
+}

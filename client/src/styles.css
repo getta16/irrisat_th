@@ -1,0 +1,949 @@
+@import 'leaflet/dist/leaflet.css';
+@import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
+
+:root {
+  --bg: #eef1ee;
+  --surface: #ffffff;
+  --surface-2: #f7f9f7;
+  --ink: #10231a;
+  --ink-2: #3a4a42;
+  --muted: #6b7a72;
+  --line: #dde4df;
+  --line-strong: #c6d1ca;
+
+  --green: #17795e;
+  --green-600: #12634d;
+  --green-200: #cfe8de;
+  --green-50: #eaf5f0;
+  --water: #2f7ec2;
+  --water-50: #e8f1fa;
+  --warn: #b6741a;
+  --warn-50: #fdf3e3;
+  --danger: #b4392f;
+  --danger-50: #fdeceb;
+
+  --header: #0d241c;
+  --header-2: #143327;
+
+  --radius: 10px;
+  --radius-sm: 7px;
+  --shadow: 0 1px 2px rgba(16, 35, 26, 0.06), 0 6px 18px rgba(16, 35, 26, 0.07);
+
+  --font: 'IBM Plex Sans Thai', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ── โครงหน้าจอ ───────────────────────────────────────────────── */
+
+.app {
+  display: grid;
+  grid-template-rows: 56px 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  min-height: 0;
+}
+
+.main-area {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+
+/* ── หัวเว็บ ───────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  background: linear-gradient(100deg, var(--header) 0%, var(--header-2) 100%);
+  color: #eaf3ee;
+  border-bottom: 1px solid #0a1a14;
+  z-index: 30;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+}
+
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(140deg, #35c98f, #14795c);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.brand small {
+  display: block;
+  font-weight: 400;
+  font-size: 11px;
+  opacity: 0.65;
+  line-height: 1.1;
+}
+
+.header-spacer {
+  flex: 1;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-controls label {
+  font-size: 11px;
+  opacity: 0.7;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.header-controls input[type='date'] {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #eaf3ee;
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-size: 12px;
+  color-scheme: dark;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.chip .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.chip.live {
+  color: #7ce8bb;
+}
+.chip.demo {
+  color: #f5c977;
+}
+.chip.down {
+  color: #f3a19a;
+}
+
+/* ── แถบข้าง ──────────────────────────────────────────────────── */
+
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  z-index: 20;
+}
+
+.sidebar-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.panel {
+  border-bottom: 1px solid var(--line);
+  padding: 14px 16px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.panel-title .count {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  background: var(--green-50);
+  color: var(--green-600);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+}
+
+/* ── ปุ่ม ─────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--muted);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.btn.primary:hover:not(:disabled) {
+  background: var(--green-600);
+  border-color: var(--green-600);
+}
+
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.btn.ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+.btn.danger {
+  color: var(--danger);
+  border-color: var(--line-strong);
+}
+.btn.danger:hover:not(:disabled) {
+  background: var(--danger-50);
+  border-color: var(--danger);
+}
+
+.btn.sm {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.btn.block {
+  width: 100%;
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── ช่องวางไฟล์ ──────────────────────────────────────────────── */
+
+.dropzone {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: 18px 14px;
+  text-align: center;
+  background: var(--surface-2);
+  transition: border-color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+
+.dropzone:hover,
+.dropzone.over {
+  border-color: var(--green);
+  background: var(--green-50);
+}
+
+.dropzone .icon {
+  font-size: 22px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.dropzone strong {
+  display: block;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.dropzone span {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.format-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.format-tag {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ── ฟอร์ม ────────────────────────────────────────────────────── */
+
+.field-group {
+  display: grid;
+  gap: 10px;
+}
+
+.form-row {
+  display: grid;
+  gap: 4px;
+}
+
+.form-row.two {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.form-row label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.form-row input,
+.form-row select {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+  font-size: 13px;
+  background: var(--surface);
+}
+
+.form-row input:focus,
+.form-row select:focus {
+  outline: 2px solid var(--green-200);
+  outline-offset: -1px;
+  border-color: var(--green);
+}
+
+.hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+/* ── รายการแปลง ───────────────────────────────────────────────── */
+
+.field-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background 0.12s;
+}
+
+.field-item:hover {
+  background: var(--surface-2);
+}
+
+.field-item.active {
+  background: var(--green-50);
+  border-color: var(--green-200);
+}
+
+.field-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+}
+
+.field-item .meta {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.field-item .field-del {
+  flex: none;
+  opacity: 0;
+  color: var(--danger);
+  transition: opacity 0.12s;
+}
+
+.field-item:hover .field-del,
+.field-item.active .field-del,
+.field-item .field-del:focus-visible {
+  opacity: 1;
+}
+
+.field-item .field-del:hover:not(:disabled) {
+  background: var(--danger-50);
+  border-color: var(--danger);
+}
+
+.btn.ghost.danger {
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.field-item .name {
+  display: block;
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-item .sub {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 22px 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.empty-state .big {
+  font-size: 26px;
+  display: block;
+  margin-bottom: 6px;
+  opacity: 0.5;
+}
+
+/* ── แผนที่ ───────────────────────────────────────────────────── */
+
+.map {
+  width: 100%;
+  height: 100%;
+  background: #cbd6ce;
+}
+
+.leaflet-container {
+  font-family: var(--font);
+}
+
+.map-overlay {
+  position: absolute;
+  z-index: 500;
+}
+
+.map-tools {
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.card-float {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
+}
+
+.layer-switch {
+  display: flex;
+  gap: 2px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.layer-switch button {
+  border: none;
+  background: transparent;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.layer-switch button.on {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--green-600);
+}
+
+.legend-bar {
+  height: 9px;
+  border-radius: 999px;
+  margin: 6px 0 3px;
+}
+
+.legend-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+.legend-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* ── แผงผลวิเคราะห์ด้านล่าง ───────────────────────────────────── */
+
+.results {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  max-height: 46vh;
+  z-index: 25;
+}
+
+.results-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.tabs button {
+  border: none;
+  background: none;
+  padding: 11px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+}
+
+.tabs button.on {
+  color: var(--green-600);
+  border-bottom-color: var(--green);
+}
+
+.results-body {
+  overflow: auto;
+  padding: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── การ์ดสรุปตัวเลข ──────────────────────────────────────────── */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.stat {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+
+.stat .label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.stat .value {
+  font-size: 20px;
+  font-weight: 600;
+  font-family: var(--mono);
+  line-height: 1.2;
+}
+
+.stat .value.dense {
+  font-size: 13px;
+  font-weight: 500;
+  padding-top: 4px;
+}
+
+.stat .value small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 3px;
+}
+
+.stat.accent {
+  background: var(--water-50);
+  border-color: #c5ddf1;
+}
+.stat.accent .value {
+  color: var(--water);
+}
+
+.stat.alert {
+  background: var(--danger-50);
+  border-color: #f2c8c4;
+}
+.stat.alert .value {
+  color: var(--danger);
+}
+
+.stat.good {
+  background: var(--green-50);
+  border-color: var(--green-200);
+}
+.stat.good .value {
+  color: var(--green-600);
+}
+
+/* ── ตาราง ────────────────────────────────────────────────────── */
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  max-height: 340px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+  padding: 7px 10px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+thead th:first-child,
+tbody td:first-child {
+  text-align: left;
+}
+
+tbody td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+tbody tr:hover {
+  background: var(--surface-2);
+}
+
+tbody tr.stress {
+  background: var(--danger-50);
+}
+
+.badge-obs {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+/* ── ข้อความแจ้งเตือน ─────────────────────────────────────────── */
+
+.note {
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  border: 1px solid;
+  margin-bottom: 10px;
+}
+
+.note.warn {
+  background: var(--warn-50);
+  border-color: #efd9ac;
+  color: #7d4f0c;
+}
+
+.note.error {
+  background: var(--danger-50);
+  border-color: #f2c8c4;
+  color: #8c2b23;
+}
+
+.note.info {
+  background: var(--water-50);
+  border-color: #c5ddf1;
+  color: #1d5285;
+}
+
+.note strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* ── ตัวโหลด ──────────────────────────────────────────────────── */
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(1px);
+  display: grid;
+  place-items: center;
+  z-index: 600;
+  font-size: 13px;
+  color: var(--ink-2);
+  gap: 8px;
+}
+
+/* ── กล่องข้อความชั่วคราว ─────────────────────────────────────── */
+
+.toasts {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 2000;
+  max-width: 380px;
+}
+
+.toast {
+  background: var(--header);
+  color: #eaf3ee;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  animation: slide-in 0.18s ease-out;
+}
+
+.toast.error {
+  background: #6f231c;
+}
+.toast.success {
+  background: var(--green-600);
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+/* ── รายการที่นำเข้ารอยืนยัน ──────────────────────────────────── */
+
+.preview-list {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  margin: 10px 0;
+}
+
+.preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+
+.preview-row:last-child {
+  border-bottom: none;
+}
+
+.preview-row .nm {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-row .nm-input {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+
+.preview-row .nm-input:hover {
+  border-color: var(--line);
+}
+
+.preview-row .nm-input:focus {
+  outline: none;
+  border-color: var(--green);
+  background: var(--surface);
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.preview-row .ar {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.recharts-cartesian-axis-tick-value {
+  font-size: 11px;
+  font-family: var(--mono);
+  fill: var(--muted);
+}
+
+.chart-box {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 8px 4px;
+  background: var(--surface);
+}
+
+.chart-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+  padding: 0 8px 6px;
+}
+
+@media (max-width: 900px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .sidebar {
+    max-height: 42vh;
+  }
+}

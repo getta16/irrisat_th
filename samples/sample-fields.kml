@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>แปลงตัวอย่าง IrriSAT-TH</name>
+    <Placemark>
+      <name>แปลงนาเหนือ</name>
+      <description>ชนิดพืช: ข้าว</description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        100.118900,14.476450,0 100.123100,14.476450,0 100.123100,14.479550,0 100.118900,14.479550,0 100.118900,14.476450,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>แปลงนากลาง</name>
+      <description>ชนิดพืช: ข้าว</description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        100.125450,14.472900,0 100.128950,14.472900,0 100.128950,14.475500,0 100.125450,14.475500,0 100.125450,14.472900,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>แปลงอ้อยริมคลอง</name>
+      <description>ชนิดพืช: อ้อย</description>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        100.116000,14.469400,0 100.121000,14.469400,0 100.121000,14.471600,0 100.116000,14.471600,0 100.116000,14.469400,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+  </Document>
+</kml>
