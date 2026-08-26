@@ -1,13 +1,17 @@
 # build หน้าเว็บ (client) แล้ว deploy ขึ้น GitHub Pages
 #
+# ── ปิดการรันอัตโนมัติไว้แล้ว ─────────────────────────────────────────
+# เว็บจริงย้ายไปอยู่บน Render (ดู render.yaml) ซึ่งเสิร์ฟทั้งหน้าเว็บและ API
+# จากที่อยู่เดียวกัน ถ้าปล่อยให้ workflow นี้รันทุกครั้งที่ push จะได้เว็บซ้ำอีกชุด
+# ที่ getta16.github.io/irrisat_th ซึ่งต่อ API ไม่ได้ — เก็บไฟล์ไว้เผื่ออยากใช้
+# แต่ต้องสั่งรันเองจากแท็บ Actions เท่านั้น
+#
 # หมายเหตุ: Pages เสิร์ฟได้เฉพาะไฟล์นิ่ง — ส่วน API (server/) ที่คุยกับ Earth Engine
 # ต้องโฮสต์แยกเอง แล้วตั้ง repository variable ชื่อ VITE_API_BASE ให้ชี้ไปที่นั่น
-# เช่น https://irrisat-api.example.com/api  (ถ้าไม่ตั้ง หน้าเว็บจะขึ้นแต่ต่อ API ไม่ได้)
+# เช่น https://irrisatth.onrender.com/api  (ถ้าไม่ตั้ง หน้าเว็บจะขึ้นแต่ต่อ API ไม่ได้)
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

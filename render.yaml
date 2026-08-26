@@ -1,0 +1,48 @@
+# Render Blueprint — deploy ทั้งหน้าเว็บและ API เป็นบริการเดียวบนแพลนฟรี
+#
+# วิธีใช้: push ไฟล์นี้ขึ้น GitHub แล้วที่ dashboard.render.com เลือก
+#   New +  →  Blueprint  →  ผูกกับ repo นี้  →  Apply
+#
+# ชื่อ service ด้านล่างจะกลายเป็นที่อยู่เว็บ: https://irrisatth.onrender.com
+# (ถ้าชื่อนี้ถูกใช้ไปแล้ว Render จะเติมตัวอักษรท้ายให้ — เปลี่ยนชื่อตรงนี้ได้)
+services:
+  - type: web
+    name: irrisatth
+    runtime: node
+    plan: free
+    region: singapore
+    autoDeploy: true
+
+    # ติดตั้ง + build หน้าเว็บก่อน แล้วค่อยลง dependency ของ API
+    # (client/dist ไม่ได้ commit ลง git จึงต้อง build ตอน deploy ทุกครั้ง)
+    buildCommand: cd client && npm ci && npm run build && cd ../server && npm ci --omit=dev
+    startCommand: node server/index.js
+
+    # Render เรียกเช็คทุก ๆ ไม่กี่นาที ถ้า /api/status ไม่ตอบถือว่า deploy ไม่ผ่าน
+    healthCheckPath: /api/status
+
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+
+      - key: NODE_ENV
+        value: production
+
+      # ── ค่าที่ต้องกรอกเองใน dashboard (sync: false = Render จะถามตอน Apply) ──
+      #
+      # GEE_SERVICE_ACCOUNT_JSON: เปิดไฟล์ .json ของ service account แล้วคัดลอก
+      # เนื้อในทั้งก้อน (ตั้งแต่ { ถึง }) มาวาง — ห้าม commit ไฟล์นี้ลง git เด็ดขาด
+      - key: GEE_SERVICE_ACCOUNT_JSON
+        sync: false
+
+      # ชื่อ Google Cloud project ที่เปิด Earth Engine API ไว้
+      # เว้นว่างได้ ระบบจะอ่าน project_id จากใน JSON ให้เอง
+      - key: GEE_PROJECT
+        sync: false
+
+      # ถ้าเชื่อม Earth Engine ไม่ได้ ให้ตกไปใช้ข้อมูล NDVI จำลองแทนที่จะพัง
+      - key: ALLOW_DEMO
+        value: "true"
+
+      - key: MAX_UPLOAD_MB
+        value: "60"

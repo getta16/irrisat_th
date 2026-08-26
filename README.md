@@ -185,6 +185,63 @@ ETc      = Kc × ET₀
 
 ---
 
+## นำขึ้นเว็บจริงฟรีด้วย Render (แนะนำ)
+
+วิธีนี้ได้ทั้งหน้าเว็บและ API อยู่ที่อยู่เดียวกัน — `https://irrisatth.onrender.com` —
+ใช้งานได้ครบทุกฟีเจอร์ ไม่มีค่าใช้จ่าย และไม่ต้องผูกบัตรเครดิต
+
+ทำได้เพราะ `server/index.js` เสิร์ฟไฟล์ใน `client/dist` ให้อยู่แล้ว หน้าเว็บกับ API
+จึงอยู่โดเมนเดียวกัน ไม่ต้องตั้ง `VITE_API_BASE` และไม่ต้องยุ่งกับ CORS
+
+### ขั้นตอน
+
+1. push โค้ดขึ้น GitHub ให้เรียบร้อย (ต้องมีไฟล์ `render.yaml` ที่รากโปรเจกต์)
+
+2. สมัคร [render.com](https://render.com) ด้วยปุ่ม **Sign in with GitHub**
+   (แพลนฟรีไม่ขอบัตรเครดิต)
+
+3. ที่ dashboard กด **New +** → **Blueprint** → เลือก repo นี้ → **Connect**
+   Render จะอ่าน `render.yaml` แล้วตั้งค่าให้เองทั้งหมด
+
+4. Render จะถามค่า 2 ตัวที่เป็นความลับ (ที่เหลือกรอกไว้ใน `render.yaml` แล้ว):
+
+   | ตัวแปร | ใส่อะไร |
+   |---|---|
+   | `GEE_SERVICE_ACCOUNT_JSON` | เปิดไฟล์คีย์ `.json` ของ service account แล้วคัดลอก**เนื้อในทั้งก้อน** ตั้งแต่ `{` ถึง `}` มาวาง |
+   | `GEE_PROJECT` | ชื่อ Google Cloud project ที่เปิด Earth Engine ไว้ (เว้นว่างก็ได้ ระบบจะอ่าน `project_id` จากใน JSON เอง) |
+
+5. กด **Apply** แล้วรอ build ประมาณ 3–5 นาที เสร็จแล้วเปิดเว็บได้ที่
+   `https://irrisatth.onrender.com`
+
+ตรวจว่าเชื่อม Earth Engine ติดจริงไหมได้ที่ `https://irrisatth.onrender.com/api/status` —
+ถ้าขึ้น `"mode":"earth-engine"` คือใช้ข้อมูลดาวเทียมจริง ถ้าขึ้น `"mode":"demo"` แปลว่าคีย์ยังไม่ถูกต้อง
+ให้ดู log ในแท็บ **Logs** ของ Render
+
+หลังจากนี้ทุกครั้งที่ push ขึ้น `main` Render จะ build และ deploy ให้เองอัตโนมัติ
+
+### ข้อจำกัดของแพลนฟรีที่ต้องรู้
+
+- **เว็บหลับเมื่อไม่มีคนเข้า 15 นาที** — คนเข้าคนแรกหลังหลับจะรอ ~50 วินาที
+  ก่อนหน้าเว็บจะขึ้น (ครั้งต่อ ๆ ไปเร็วปกติ)
+
+- **ข้อมูลแปลงหายเมื่อรีสตาร์ต** — แพลนฟรีไม่มีดิสก์ถาวร ข้อมูลใน
+  `server/data/fields.json` จะหายทุกครั้งที่เว็บหลับแล้วตื่น หรือ deploy ใหม่
+  ถ้าต้องเก็บถาวรมีสองทาง:
+  - ตั้ง `GCS_BUCKET` ให้ไปเก็บบน Google Cloud Storage (ต้องเปิด billing กับ Google
+    แต่ปริมาณเท่านี้อยู่ในโควตาฟรี 5 GB) — ดูหัวข้อ Cloud Run ด้านล่าง
+  - เปลี่ยน `server/services/store.js` ไปใช้ฐานข้อมูลฟรีอย่าง Supabase
+    (โค้ดแยกส่วนไว้แล้ว แก้เฉพาะไฟล์นี้ไฟล์เดียว)
+
+- **750 ชั่วโมง/เดือน** ต่อบัญชี — พอสำหรับบริการเดียวรันทั้งเดือน
+
+### ถ้าอยากได้โดเมนจริง (เช่น irrisatth.com)
+
+โดเมนจริงต้องเสียค่าจดทะเบียน — ไม่มีเจ้าไหนแจกฟรีแล้ว (ราว 300–500 บาท/ปี)
+ถ้าซื้อมาแล้ว ไม่ต้องแก้โค้ดอะไรเลย แค่เข้า Render → service → **Settings → Custom Domains**
+→ **Add Custom Domain** แล้วตั้ง DNS ตามที่หน้าจอบอก Render ออกใบรับรอง HTTPS ให้ฟรี
+
+---
+
 ## นำขึ้น GitHub Pages
 
 Pages เสิร์ฟได้เฉพาะ**ไฟล์นิ่ง** จึงขึ้นได้แค่หน้าเว็บ (`client/`) เท่านั้น
@@ -197,13 +254,17 @@ service account key ซึ่งเป็นความลับ — เอา�
 ### ขั้นตอน
 
 1. ที่ repo บน GitHub → **Settings → Pages → Source** เลือก **GitHub Actions**
-2. push ขึ้น branch `main` — workflow `.github/workflows/deploy-pages.yml` จะ build
-   `client/` แล้ว deploy ให้เอง (ตั้ง `VITE_BASE` เป็นชื่อ repo ให้อัตโนมัติ)
+2. ไปที่แท็บ **Actions** → เลือก workflow **Deploy to GitHub Pages** → **Run workflow**
+   (workflow นี้ปิดการรันอัตโนมัติไว้ เพราะเว็บจริงอยู่บน Render แล้ว — ถ้าปล่อยให้รัน
+   ทุกครั้งที่ push จะได้เว็บซ้ำอีกชุดที่ต่อ API ไม่ได้)
 3. เว็บจะอยู่ที่ `https://<user>.github.io/<repo>/`
 
 ### ให้หน้าเว็บบน Pages ใช้งานได้เต็มรูปแบบ
 
-ต้องเอา `server/` ไปรันบน Cloud Run ก่อน แล้วชี้ `VITE_API_BASE` มาที่นั่น — ดูหัวข้อถัดไป
+ต้องมี API รันอยู่ที่อื่นก่อน แล้วตั้ง repository variable `VITE_API_BASE` ให้ชี้ไปที่นั่น
+(เช่น `https://irrisatth.onrender.com/api` หรือ Cloud Run — ดูหัวข้อถัดไป)
+
+ถ้าใช้ Render อยู่แล้วก็ไม่จำเป็นต้องทำหัวข้อนี้เลย เพราะได้ทั้งหน้าเว็บและ API ในที่เดียว
 
 ---
 
