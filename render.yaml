@@ -15,7 +15,10 @@ services:
 
     # ติดตั้ง + build หน้าเว็บก่อน แล้วค่อยลง dependency ของ API
     # (client/dist ไม่ได้ commit ลง git จึงต้อง build ตอน deploy ทุกครั้ง)
-    buildCommand: cd client && npm ci && npm run build && cd ../server && npm ci --omit=dev
+    #
+    # --include=dev จำเป็น เพราะ NODE_ENV=production ด้านล่างทำให้ npm ข้าม
+    # devDependencies ซึ่ง vite อยู่ในนั้น ถ้าไม่ใส่จะพังด้วย "vite: not found"
+    buildCommand: cd client && npm ci --include=dev && npm run build && cd ../server && npm ci --omit=dev
     startCommand: node server/index.js
 
     # Render เรียกเช็คทุก ๆ ไม่กี่นาที ถ้า /api/status ไม่ตอบถือว่า deploy ไม่ผ่าน
