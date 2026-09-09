@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .env
+# ไฟล์สำรอง .env เช่น .env.bak มีค่าลับปนอยู่ด้วย — กันไว้ทั้งหมด ยกเว้นไฟล์ตัวอย่าง
+.env.*
+!.env.example
 *.log
 
 # ข้อมูลแปลงที่ผู้ใช้บันทึกไว้ และคีย์ service account

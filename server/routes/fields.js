@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { normalizeToFields } from '../services/normalize.js'
+import { ownerOf } from '../services/auth.js'
 import {
   listFields,
   getField,
@@ -14,12 +15,13 @@ const router = Router()
 
 const isTrue = (v) => v === true || v === 'true' || v === '1' || v === 1
 
-router.get('/', (_req, res) => {
-  res.json({ fields: listFields() })
+// ทุกเส้นทางในไฟล์นี้ส่ง ownerOf(req) ให้ store เสมอ เพื่อไม่ให้เห็นหรือแก้แปลงของคนอื่น
+router.get('/', (req, res) => {
+  res.json({ fields: listFields(ownerOf(req)) })
 })
 
 router.get('/:id', (req, res) => {
-  const field = getField(req.params.id)
+  const field = getField(req.params.id, ownerOf(req))
   if (!field) return res.status(404).json({ error: 'ไม่พบแปลงนี้' })
   res.json({ field })
 })
@@ -50,10 +52,11 @@ router.post('/', async (req, res) => {
     const invalid = items.find((f) => !f.geometry || !['Polygon', 'MultiPolygon'].includes(f.geometry.type))
     if (invalid) return res.status(400).json({ error: 'ทุกแปลงต้องเป็นรูปทรงแบบพื้นที่ (Polygon)' })
 
+    const owner = ownerOf(req)
     const replace = isTrue(req.body.replace)
-    const removed = replace ? listFields().length : 0
+    const removed = replace ? listFields(owner).length : 0
 
-    const created = await createFields(items, { replace })
+    const created = await createFields(items, { owner, replace })
     res.status(201).json({ fields: created, replaced: removed })
   } catch (err) {
     console.error('create fields failed:', err)
@@ -68,7 +71,7 @@ router.post('/', async (req, res) => {
 router.delete('/', async (req, res) => {
   try {
     if (isTrue(req.query.all)) {
-      const removed = await deleteAllFields()
+      const removed = await deleteAllFields(ownerOf(req))
       return res.json({ removed })
     }
 
@@ -76,7 +79,7 @@ router.delete('/', async (req, res) => {
     if (!Array.isArray(ids) || !ids.length) {
       return res.status(400).json({ error: 'ต้องส่ง ids ของแปลงที่จะลบ หรือใช้ ?all=1 เพื่อลบทั้งหมด' })
     }
-    const removed = await deleteFields(ids)
+    const removed = await deleteFields(ids, ownerOf(req))
     res.json({ removed })
   } catch (err) {
     console.error('delete fields failed:', err)
@@ -87,13 +90,13 @@ router.delete('/', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   const allowed = ['name', 'settings', 'irrigations', 'properties']
   const patch = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)))
-  const updated = await updateField(req.params.id, patch)
+  const updated = await updateField(req.params.id, patch, ownerOf(req))
   if (!updated) return res.status(404).json({ error: 'ไม่พบแปลงนี้' })
   res.json({ field: updated })
 })
 
 router.delete('/:id', async (req, res) => {
-  const ok = await deleteField(req.params.id)
+  const ok = await deleteField(req.params.id, ownerOf(req))
   if (!ok) return res.status(404).json({ error: 'ไม่พบแปลงนี้' })
   res.status(204).end()
 })

@@ -8,7 +8,8 @@ const BASEMAPS = {
     label: 'ภาพดาวเทียม',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Esri, Maxar, Earthstar Geographics',
-    maxZoom: 19,
+    // มีภาพจริงถึง z19 เกินจากนี้ให้ Leaflet ขยายภาพต่อ แทนที่จะเป็นจอว่าง
+    maxNativeZoom: 19,
     labels:
       'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
   },
@@ -16,9 +17,12 @@ const BASEMAPS = {
     label: 'แผนที่ถนน',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '© OpenStreetMap contributors',
-    maxZoom: 19,
+    maxNativeZoom: 19,
   },
 }
+
+// ระดับซูมสูงสุดที่กดได้ ตั้งสูงกว่าระดับที่ tile มีจริงเพื่อให้ดูแปลงเล็ก ๆ ได้
+const MAX_ZOOM = 22
 
 // ศูนย์กลางประเทศไทย ใช้เป็นมุมมองเริ่มต้น
 const THAILAND = { center: [15.0, 101.0], zoom: 6 }
@@ -33,6 +37,7 @@ export default function MapView({
   basemap,
   overlay,
   overlayOpacity,
+  fieldOpacity,
   fitToken,
 }) {
   const holder = useRef(null)
@@ -53,6 +58,7 @@ export default function MapView({
     const m = L.map(holder.current, {
       center: THAILAND.center,
       zoom: THAILAND.zoom,
+      maxZoom: MAX_ZOOM,
       zoomControl: false,
       attributionControl: true,
     })
@@ -103,12 +109,16 @@ export default function MapView({
 
     baseLayer.current = L.tileLayer(cfg.url, {
       attribution: cfg.attribution,
-      maxZoom: cfg.maxZoom,
+      maxNativeZoom: cfg.maxNativeZoom,
+      maxZoom: MAX_ZOOM,
     }).addTo(m)
     baseLayer.current.setZIndex(1)
 
     if (cfg.labels) {
-      labelLayer.current = L.tileLayer(cfg.labels, { maxZoom: cfg.maxZoom }).addTo(m)
+      labelLayer.current = L.tileLayer(cfg.labels, {
+        maxNativeZoom: cfg.maxNativeZoom,
+        maxZoom: MAX_ZOOM,
+      }).addTo(m)
       labelLayer.current.setZIndex(3)
     }
   }, [basemap])
@@ -125,7 +135,9 @@ export default function MapView({
 
     overlayLayer.current = L.tileLayer(overlay.urlFormat, {
       opacity: overlayOpacity,
-      maxZoom: 20,
+      // Sentinel-2 ความละเอียด 10 ม. ไม่มีรายละเอียดเกิน z18 อยู่แล้ว ขยายภาพต่อพอ
+      maxNativeZoom: 18,
+      maxZoom: MAX_ZOOM,
       attribution: 'Google Earth Engine',
     }).addTo(m)
     overlayLayer.current.setZIndex(2)
@@ -141,6 +153,10 @@ export default function MapView({
     if (!group) return
     group.clearLayers()
 
+    // ผู้ใช้ปรับความทึบได้เอง (0 = เห็นแต่เส้นขอบ) แปลงที่ไม่ได้เลือกจางกว่าเสมอ
+    // เส้นขอบคงความทึบเต็มไว้ เพื่อให้ยังหาแปลงเจอแม้ตั้งพื้นสีไว้ที่ 0
+    const fill = Math.min(Math.max(fieldOpacity ?? 0.22, 0), 1)
+
     fields.forEach((field, i) => {
       const color = colorFor(i)
       const active = field.id === selectedId
@@ -152,7 +168,7 @@ export default function MapView({
             weight: active ? 3 : 2,
             opacity: 1,
             fillColor: color,
-            fillOpacity: active ? 0.22 : 0.1,
+            fillOpacity: active ? fill : fill * 0.45,
             dashArray: active ? null : '5,4',
           },
         }
@@ -161,7 +177,7 @@ export default function MapView({
       layer.on('click', () => handlers.current.onSelect?.(field.id))
       group.addLayer(layer)
     })
-  }, [fields, selectedId])
+  }, [fields, selectedId, fieldOpacity])
 
   // แปลงที่เพิ่งนำเข้า ยังไม่ได้บันทึก
   useEffect(() => {

@@ -18,6 +18,8 @@ export default function MapControls({
   overlay,
   overlayError,
   overlayLoading,
+  fieldOpacity,
+  setFieldOpacity,
   disabled,
 }) {
   const palette = layer === 'kc' ? KC_PALETTE : NDVI_PALETTE
@@ -32,6 +34,23 @@ export default function MapControls({
               {b === 'satellite' ? 'ภาพดาวเทียม' : 'แผนที่ถนน'}
             </button>
           ))}
+        </div>
+
+        <div className="slider-row">
+          <label htmlFor="field-opacity">
+            ความทึบสีแปลง
+            <span className="slider-value">{Math.round(fieldOpacity * 100)}%</span>
+          </label>
+          <input
+            id="field-opacity"
+            type="range"
+            min="0"
+            max="0.8"
+            step="0.02"
+            value={fieldOpacity}
+            onChange={(e) => setFieldOpacity(Number(e.target.value))}
+            title="ลากไปทางซ้ายจนสุดเพื่อให้เหลือแต่เส้นขอบแปลง"
+          />
         </div>
 
         <div className="legend-title" style={{ marginBottom: 4 }}>ชั้นข้อมูลจากดาวเทียม</div>
@@ -80,16 +99,19 @@ export default function MapControls({
             )}
 
             {overlay && (
-              <div style={{ marginTop: 8 }}>
-                <label style={{ fontSize: 11, color: 'var(--muted)' }}>ความทึบ {Math.round(opacity * 100)}%</label>
+              <div className="slider-row">
+                <label htmlFor="overlay-opacity">
+                  ความทึบชั้นซ้อน
+                  <span className="slider-value">{Math.round(opacity * 100)}%</span>
+                </label>
                 <input
+                  id="overlay-opacity"
                   type="range"
                   min="0.1"
                   max="1"
                   step="0.05"
                   value={opacity}
                   onChange={(e) => setOpacity(Number(e.target.value))}
-                  style={{ width: '100%' }}
                 />
               </div>
             )}

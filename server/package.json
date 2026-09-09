@@ -1,5 +1,5 @@
 {
-  "name": "irrisat-th-server",
+  "name": "iwasamsat-server",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "google-auth-library": "^9.15.1",
     "jszip": "^3.10.1",
     "multer": "^2.0.2",
     "proj4": "^2.15.0",

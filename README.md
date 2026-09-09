@@ -1,4 +1,4 @@
-# IrriSAT-TH
+# iWASAMSAT
 
 ระบบวางแผนการให้น้ำชลประทานรายแปลงจากภาพถ่ายดาวเทียม — สร้างตามแนวทางของ
 [irrisat.app](https://www.irrisat.app/) แต่**เพิ่มความสามารถนำเข้าไฟล์ขอบเขตพื้นที่**
@@ -52,7 +52,7 @@ npm run dev        # เปิดเซิร์ฟเวอร์ + หน้�
 ### 2. สร้าง service account และดาวน์โหลดคีย์
 
 1. ไปที่ [IAM & Admin → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts)
-   → **Create Service Account** (ตั้งชื่ออะไรก็ได้ เช่น `irrisat-server`)
+   → **Create Service Account** (ตั้งชื่ออะไรก็ได้ เช่น `iwasamsat`)
 2. เข้าไปที่ service account ที่สร้าง → แท็บ **Keys** → **Add Key → Create new key → JSON**
 3. เก็บไฟล์ `.json` ที่ดาวน์โหลดมาไว้นอกโฟลเดอร์โปรเจกต์ เช่น `D:\GIS_GET\keys\gee-key.json`
 
@@ -62,7 +62,7 @@ npm run dev        # เปิดเซิร์ฟเวอร์ + หน้�
 ### 3. ลงทะเบียน service account กับ Earth Engine
 
 ไปที่ https://code.earthengine.google.com/register แล้วเลือก **Register a Service Account**
-ใส่อีเมลของ service account (หน้าตาแบบ `irrisat-server@ชื่อโปรเจกต์.iam.gserviceaccount.com`)
+ใส่อีเมลของ service account (หน้าตาแบบ `iwasamsat@ชื่อโปรเจกต์.iam.gserviceaccount.com`)
 
 ### 4. ตั้งค่าในโปรเจกต์
 
@@ -75,6 +75,101 @@ GEE_PROJECT=ชื่อ-google-cloud-project
 
 รีสตาร์ทเซิร์ฟเวอร์ — ถ้าสำเร็จจะขึ้นข้อความ `Earth Engine → พร้อมใช้งาน`
 และป้ายสถานะมุมขวาบนของเว็บจะเปลี่ยนเป็นสีเขียว **"Earth Engine พร้อมใช้งาน"**
+
+---
+
+## ล็อกอินด้วยบัญชี Google (Gmail)
+
+ค่าเริ่มต้นคือ **ปิดระบบล็อกอิน** — ใครเปิดหน้าเว็บก็ใช้ได้ สะดวกตอนพัฒนาในเครื่อง
+พอตั้ง `GOOGLE_CLIENT_ID` ในไฟล์ `.env` หน้าเว็บจะขึ้นปุ่ม **"ลงชื่อเข้าใช้ด้วย Google" ที่มุมขวาบน**
+และทุก API ที่แตะข้อมูลแปลง (`/api/fields`, `/api/import`, `/api/analysis`) จะตอบ 401 ถ้าไม่มี token
+
+ไม่มีหน้าล็อกอินแยก — แผนที่และชั้นข้อมูลดาวเทียมเปิดดูได้เลย ส่วนแปลงเพาะปลูกกับผลวิเคราะห์
+ซึ่งเป็นข้อมูลส่วนตัวของแต่ละบัญชีจะปรากฏหลังลงชื่อเข้าใช้ ถ้าอยากเข้าด้วยบัญชีอื่น
+ให้กดปุ่ม ▾ ข้างปุ่มลงชื่อเข้าใช้ → **ใช้บัญชี Google อื่น…** แล้วพิมพ์อีเมลในหน้าต่างของ Google
+
+### 1. สร้าง OAuth Client ID
+
+ที่ [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → **APIs & Services → Credentials**
+
+1. ถ้ายังไม่เคยตั้ง ให้ทำ **OAuth consent screen** ก่อน (เลือก External, กรอกชื่อแอปและอีเมลผู้ติดต่อ)
+2. **Create credentials → OAuth client ID → Application type: Web application**
+3. ใส่ **Authorized JavaScript origins** ให้ตรงกับที่อยู่ของหน้าเว็บ (ต้องตรงเป๊ะ รวมพอร์ต และห้ามมี `/` ปิดท้าย)
+
+   | ใช้ตอนไหน | ใส่อะไร |
+   | --- | --- |
+   | รันในเครื่องด้วย `npm run dev` | `http://localhost:5173` |
+   | รัน production ในเครื่อง | `http://localhost:5174` |
+   | GitHub Pages | `https://<user>.github.io` |
+   | Cloud Run | `https://<ชื่อบริการ>-<hash>.run.app` |
+
+   > ไม่ต้องกรอก *Authorized redirect URIs* เพราะระบบใช้แบบ popup ไม่ได้ redirect ออกไป
+
+4. คัดลอก **Client ID** (ลงท้ายด้วย `.apps.googleusercontent.com`) มาใส่ใน `.env`
+
+### 2. ตั้งค่าในโปรเจกต์
+
+```ini
+GOOGLE_CLIENT_ID=1234567890-xxxxxxxx.apps.googleusercontent.com
+
+# จำกัดคนที่เข้าได้ (เว้นว่างทั้งคู่ = ทุกบัญชี Google เข้าได้)
+ALLOWED_EMAILS=somchai@gmail.com,malee@gmail.com
+ALLOWED_DOMAINS=rid.go.th
+```
+
+รีสตาร์ทเซิร์ฟเวอร์ — จะขึ้นข้อความ `ล็อกอิน Google → เปิดใช้งาน (อนุญาต: ...)`
+
+หน้าเว็บไม่ต้องตั้งค่าอะไรเพิ่ม เพราะขอ Client ID จาก `/api/auth/config` ตอนเปิดหน้าเอง
+
+### ทำงานอย่างไร
+
+- ผู้ใช้กดปุ่มของ Google → ได้ **ID token** (JWT) ที่ Google เซ็นไว้
+- หน้าเว็บเก็บ token ไว้ใน `localStorage` และแนบไปทุกคำขอเป็น `Authorization: Bearer <token>`
+- เซิร์ฟเวอร์ตรวจลายเซ็นกับกุญแจสาธารณะของ Google และเช็คว่า audience ตรงกับ Client ID ของเรา
+  (กัน token จากเว็บอื่นมาสวมใช้) แล้วจึงเทียบอีเมลกับรายชื่อที่อนุญาต
+- token มีอายุราว 1 ชั่วโมง ระบบขอใหม่ให้เงียบ ๆ ก่อนหมดอายุ ถ้าขอไม่สำเร็จจะพากลับไปหน้าล็อกอิน
+- ระบบขอเพียงชื่อ อีเมล และรูปโปรไฟล์เพื่อยืนยันตัวตน **ไม่ได้ขอสิทธิ์อ่าน Gmail หรือไฟล์ใด ๆ**
+
+### แยกข้อมูลตามผู้ใช้
+
+เมื่อเปิดใช้การล็อกอิน **แต่ละบัญชีจะเห็นและแก้ได้เฉพาะแปลงของตัวเอง**
+
+แต่ละแปลงจำเจ้าของไว้ในตัวมันเอง (`ownerId` = Google sub ซึ่งไม่มีวันเปลี่ยน,
+`ownerEmail` = อีเมล) แล้ว `store.js` กรองตามเจ้าของทุกครั้งที่อ่านหรือเขียน
+
+| ทำอะไร | ขอบเขต |
+| --- | --- |
+| รายการแปลง / เลือกดูผลวิเคราะห์ | เห็นเฉพาะแปลงของตัวเอง |
+| เปิดแปลงของคนอื่นด้วย id ตรง ๆ | ตอบ 404 เหมือนไม่มีแปลงนั้น (ไม่บอกใบ้ว่ามีอยู่) |
+| แก้ไข / ลบแปลงของคนอื่น | ทำไม่ได้ ตอบ 404 |
+| "ลบแปลงเดิมทั้งหมดแล้วใช้ชุดนี้แทน" ตอนนำเข้าไฟล์ | ลบเฉพาะแปลงของตัวเอง |
+| ปุ่ม "ลบทั้งหมด" | ลบเฉพาะแปลงของตัวเอง |
+
+> **ถ้าไม่ตั้ง `GOOGLE_CLIENT_ID`** ระบบถือเป็นโหมดผู้ใช้คนเดียว — เห็นแปลงทั้งหมดรวมกันเหมือนก่อน
+
+> ⚠ **เว็บที่ deploy ขึ้นออนไลน์ควรตั้ง `ALLOWED_EMAILS` เสมอ**
+> ถ้าเว้นว่างไว้ ใครก็ตามที่มีบัญชี Google จะสมัครเข้ามาสร้างแปลงของตัวเองได้
+> ข้อมูลของคุณยังปลอดภัย (แยกตามเจ้าของ) แต่การประมวลผลของเขาจะไปกิน
+> **โควตา Earth Engine และค่า Cloud Run ของคุณ**
+
+### โอนแปลงเก่าที่บันทึกไว้ก่อนเปิดใช้การล็อกอิน
+
+แปลงที่บันทึกไว้ตั้งแต่ยังไม่มีระบบล็อกอินจะ **ไม่มีเจ้าของ** พอเปิดใช้การล็อกอินจึงไม่มีใครเห็น
+(ข้อมูลยังอยู่ครบในไฟล์ ไม่ได้ถูกลบ) ตอนเริ่มระบบจะเตือนไว้ให้:
+
+```
+⚠ มีแปลง 35 แปลงที่ยังไม่มีเจ้าของ จึงยังไม่มีใครเห็น (ข้อมูลยังอยู่ครบ)
+  ตั้ง LEGACY_OWNER_EMAIL=อีเมลของคุณ ใน .env แล้วรีสตาร์ต เพื่อโอนให้บัญชีนั้น
+```
+
+ใส่บรรทัดนี้ใน `.env` แล้วรีสตาร์ตหนึ่งครั้ง:
+
+```ini
+LEGACY_OWNER_EMAIL=อีเมลของคุณ@gmail.com
+```
+
+ระบบจะประทับเจ้าของให้แปลงเก่าทั้งหมดครั้งเดียว (ขึ้นข้อความ `โอนแปลงเก่า N แปลงให้ ... แล้ว`)
+จากนั้นลบบรรทัดนี้ทิ้งได้เลย
 
 ---
 
@@ -242,42 +337,37 @@ ETc      = Kc × ET₀
 
 ---
 
-## นำขึ้น GitHub Pages
+## นำขึ้นใช้งานจริงด้วย Google Cloud Run
 
-Pages เสิร์ฟได้เฉพาะ**ไฟล์นิ่ง** จึงขึ้นได้แค่หน้าเว็บ (`client/`) เท่านั้น
-ส่วน API ใน `server/` ที่คุยกับ Earth Engine ต้องมี Node.js รันอยู่จริง และต้องถือ
-service account key ซึ่งเป็นความลับ — เอาขึ้น Pages ไม่ได้ทั้งสองข้อ
+หน้าเว็บกับ API อยู่ในบริการเดียวกัน โดเมนเดียวกัน — `Dockerfile` ที่รากโปรเจกต์
+build `client/` ให้ในตัว แล้ว Express ใน `server/index.js` เสิร์ฟทั้งไฟล์หน้าเว็บและ `/api`
 
-ผลคือถ้า deploy แค่ Pages เปล่า ๆ หน้าเว็บจะเปิดขึ้นและเลื่อนแผนที่ได้ แต่จะขึ้นว่า
-"ไม่ได้เชื่อมต่อดาวเทียม" และนำเข้าแปลง/คำนวณไม่ได้ เพราะไม่มี API ให้เรียก
+ข้อดีของการรวมไว้ที่เดียว: ไม่ต้องตั้ง `VITE_API_BASE`, ไม่มีปัญหา CORS
+และมี origin เดียวให้ใส่ใน OAuth client (ถ้าแยกหน้าเว็บไปอยู่ GitHub Pages ต้องทำครบทั้งสามอย่าง)
 
-### ขั้นตอน
-
-1. ที่ repo บน GitHub → **Settings → Pages → Source** เลือก **GitHub Actions**
-2. ไปที่แท็บ **Actions** → เลือก workflow **Deploy to GitHub Pages** → **Run workflow**
-   (workflow นี้ปิดการรันอัตโนมัติไว้ เพราะเว็บจริงอยู่บน Render แล้ว — ถ้าปล่อยให้รัน
-   ทุกครั้งที่ push จะได้เว็บซ้ำอีกชุดที่ต่อ API ไม่ได้)
-3. เว็บจะอยู่ที่ `https://<user>.github.io/<repo>/`
-
-### ให้หน้าเว็บบน Pages ใช้งานได้เต็มรูปแบบ
-
-ต้องมี API รันอยู่ที่อื่นก่อน แล้วตั้ง repository variable `VITE_API_BASE` ให้ชี้ไปที่นั่น
-(เช่น `https://irrisatth.onrender.com/api` หรือ Cloud Run — ดูหัวข้อถัดไป)
-
-ถ้าใช้ Render อยู่แล้วก็ไม่จำเป็นต้องทำหัวข้อนี้เลย เพราะได้ทั้งหน้าเว็บและ API ในที่เดียว
-
----
-
-## โฮสต์ API บน Google Cloud Run
-
-ใช้โปรเจกต์เดียวกับที่เปิด Earth Engine ไว้แล้ว จึงไม่ต้องสร้าง service account ใหม่
+> **ทำไมถึงใช้ `us-central1` ทั้งที่ผู้ใช้อยู่ไทย**
+>
+> โควตาฟรีของ Cloud Run (2 ล้านคำขอ/เดือน · 180,000 vCPU-วินาที · 360,000 GiB-วินาที)
+> ใช้ได้เฉพาะ **Tier 1 region ของสหรัฐฯ** — `us-central1`, `us-east1`, `us-west1`
+> ส่วน `asia-southeast1` (สิงคโปร์) เป็น Tier 2 จึง**ไม่เข้าโควตาฟรี** และคิดเงินตั้งแต่คำขอแรก
+> เช่นเดียวกับโควตาฟรี 5 GB ของ Cloud Storage ที่ใช้ได้เฉพาะสาม region นี้
+>
+> แลกกับหน่วงเพิ่มราว 200 มิลลิวินาทีต่อคำขอ ซึ่งแทบไม่รู้สึกกับงานแบบนี้
+> (และงานหนักจริงอยู่ที่ Earth Engine ซึ่งประมวลผลอยู่ในสหรัฐฯ อยู่แล้ว)
+> ถ้าอยากได้เร็วที่สุดและยอมจ่าย เปลี่ยนทุกคำสั่งข้างล่างเป็น `asia-southeast1` ได้
 
 ### สิ่งที่ต้องมีก่อน
 
 - ผูกบัญชีเรียกเก็บเงิน (billing) กับโปรเจกต์ — Cloud Run มีโควตาฟรีต่อเดือนอยู่แล้ว
   แต่ Google บังคับให้ผูกบัตรก่อนถึงจะเปิดใช้ได้
 - ลง gcloud CLI: `winget install Google.CloudSDK` แล้วเปิด PowerShell ใหม่
-- `gcloud auth login` แล้ว `gcloud config set project klongkloong`
+- ล็อกอินและเลือกโปรเจกต์ (ใช้โปรเจกต์เดียวกับที่เปิด Earth Engine ไว้ จะได้ไม่ต้องสร้าง
+  service account ใหม่):
+
+```powershell
+gcloud auth login
+gcloud config set project iwsamsat-analysis-system
+```
 
 ### 1. เปิด API ที่ต้องใช้
 
@@ -289,51 +379,52 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com `
 ### 2. สร้าง bucket เก็บข้อมูลแปลง
 
 ดิสก์ของ Cloud Run หายทุกครั้งที่รีสตาร์ต ข้อมูลแปลงจึงต้องไปอยู่บน Cloud Storage
+**ถ้าไม่ตั้ง `GCS_BUCKET` แปลงที่ผู้ใช้บันทึกจะหายทุกครั้งที่ deploy ใหม่**
 (ชื่อ bucket ต้องไม่ซ้ำกับใครทั้งโลก — เปลี่ยนได้ตามใจ)
 
 ```powershell
-gcloud storage buckets create gs://klongkloong-irrisat-data --location=asia-southeast1
+gcloud storage buckets create gs://iwasamsat-data --location=us-central1
 ```
 
 ถ้ามีข้อมูลแปลงเดิมในเครื่องอยู่แล้ว อัปขึ้นไปก่อนได้:
 
 ```powershell
-gcloud storage cp server/data/fields.json gs://klongkloong-irrisat-data/fields.json
+gcloud storage cp server/data/fields.json gs://iwasamsat-data/fields.json
 ```
 
 ### 3. เก็บคีย์ service account ไว้ใน Secret Manager
 
 อย่าใส่คีย์เป็น env var ธรรมดาและอย่า commit ลง git — เก็บเป็น secret แล้วให้ Cloud Run
-อ่านตอนรันเท่านั้น
+อ่านตอนรันเท่านั้น (`.dockerignore` กันไฟล์ `*-key.json` ไม่ให้หลุดเข้าอิมเมจไว้อีกชั้น)
 
 ```powershell
-gcloud secrets create irrisat-gee-key --data-file="D:GIS_GETscodekeyklongkloong-66f17875c00e.json"
+gcloud secrets create iwasamsat-gee-key `
+  --data-file="D:/GIS_GET/vscode/key/iwsamsat-analysis-system-a59b07402739.json"
 ```
 
 ### 4. ให้สิทธิ์ service account
 
 รัน Cloud Run ด้วย service account ตัวเดียวกับที่ลงทะเบียน Earth Engine ไว้
-(`irrisat-th@klongkloong.iam.gserviceaccount.com`) จะได้เข้าถึง bucket ได้เลยโดยไม่ต้องมีคีย์อีกชุด
 
 ```powershell
-$SA = "irrisat-th@klongkloong.iam.gserviceaccount.com"
+$SA = "iwasamsat@iwsamsat-analysis-system.iam.gserviceaccount.com"
 
-gcloud storage buckets add-iam-policy-binding gs://klongkloong-irrisat-data `
+gcloud storage buckets add-iam-policy-binding gs://iwasamsat-data `
   --member="serviceAccount:$SA" --role="roles/storage.objectAdmin"
 
-gcloud secrets add-iam-policy-binding irrisat-gee-key `
+gcloud secrets add-iam-policy-binding iwasamsat-gee-key `
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
 ```
 
 ### 5. Deploy
 
 ```powershell
-gcloud run deploy irrisat-api `
-  --source server `
-  --region asia-southeast1 `
-  --service-account "irrisat-th@klongkloong.iam.gserviceaccount.com" `
-  --set-secrets "GEE_SERVICE_ACCOUNT_JSON=irrisat-gee-key:latest" `
-  --set-env-vars "GEE_PROJECT=klongkloong,GCS_BUCKET=klongkloong-irrisat-data,ALLOW_DEMO=false" `
+gcloud run deploy iwasamsat `
+  --source . `
+  --region us-central1 `
+  --service-account "iwasamsat@iwsamsat-analysis-system.iam.gserviceaccount.com" `
+  --set-secrets "GEE_SERVICE_ACCOUNT_JSON=iwasamsat-gee-key:latest" `
+  --set-env-vars "GEE_PROJECT=iwsamsat-analysis-system,GCS_BUCKET=iwasamsat-data,ALLOW_DEMO=false,GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com" `
   --memory 1Gi `
   --timeout 300 `
   --max-instances 1 `
@@ -344,34 +435,37 @@ gcloud run deploy irrisat-api `
 
 | ตัวเลือก | ทำไมต้องใส่ |
 | --- | --- |
-| `--source server` | build เฉพาะโฟลเดอร์ server/ ตาม `server/Dockerfile` |
-| `--max-instances 1` | ระบบเก็บข้อมูลแปลงไว้ในหน่วยความจำแล้วเขียนกลับ bucket ถ้ามีหลายอินสแตนซ์พร้อมกันจะเขียนทับกันเอง |
+| `--source .` | build จากรากโปรเจกต์ตาม `Dockerfile` ซึ่งรวมทั้ง `client/` และ `server/` |
+| `--max-instances 1` | ระบบเก็บข้อมูลแปลงไว้ในหน่วยความจำแล้วเขียนกลับ bucket ถ้ามีหลายอินสแตนซ์พร้อมกันจะเขียนทับกันเอง — สำคัญยิ่งขึ้นเมื่อมีผู้ใช้หลายคน เพราะทุกคนใช้ไฟล์เดียวกัน (แยกกันด้วยเจ้าของในแต่ละแปลง) |
 | `--memory 1Gi` | shapefile ขนาดใหญ่กับการแปลงพิกัดกินแรมเกิน 512Mi ได้ |
 | `--timeout 300` | คำขอ Earth Engine ครั้งแรกของแปลงใหญ่ใช้เวลาหลายสิบวินาที |
-| `--allow-unauthenticated` | หน้าเว็บบน Pages เรียกตรงโดยไม่มีระบบล็อกอิน |
+| `--allow-unauthenticated` | ให้เบราว์เซอร์เปิดหน้าเว็บได้โดยตรง — การคุมสิทธิ์ทำที่ระดับแอปด้วย `GOOGLE_CLIENT_ID` |
+| `GOOGLE_CLIENT_ID` | บังคับให้ลงชื่อเข้าใช้ด้วยบัญชี Google ก่อน (ดูหัวข้อ [ล็อกอินด้วยบัญชี Google](#ล็อกอินด้วยบัญชี-google-gmail)) |
 | `ALLOW_DEMO=false` | บนของจริงอยากให้ error ชัด ๆ ดีกว่าเงียบ ๆ แล้วส่งข้อมูลจำลองให้ |
 
-เสร็จแล้ว gcloud จะพิมพ์ URL ออกมา เช่น `https://irrisat-api-xxxxxxxx-as.a.run.app`
+### 6. เปิด URL ที่ได้ให้ล็อกอินได้
+
+เสร็จแล้ว gcloud จะพิมพ์ URL ออกมา เช่น `https://iwasamsat-xxxxxxxx-uc.a.run.app`
+เอา URL นั้นไปใส่ใน **Google Cloud Console → APIs & Services → Credentials →
+OAuth client → Authorized JavaScript origins** ไม่อย่างนั้นปุ่มลงชื่อเข้าใช้จะไม่ทำงาน
+
 ลองเช็คว่าเชื่อม Earth Engine ได้จริง:
 
 ```powershell
-curl.exe https://irrisat-api-xxxxxxxx-as.a.run.app/api/status
+curl.exe https://iwasamsat-xxxxxxxx-uc.a.run.app/api/status
 ```
 
 ควรได้ `"mode":"earth-engine"` ถ้าได้ `"mode":"unavailable"` ให้ดูล็อกด้วย
-`gcloud run services logs read irrisat-api --region asia-southeast1`
+`gcloud run services logs read iwasamsat --region us-central1`
 
-### 6. ชี้หน้าเว็บมาที่ API
+### ถ้าอยากแยกหน้าเว็บไปไว้ GitHub Pages แทน
 
-ที่ repo บน GitHub → **Settings → Secrets and variables → Actions → Variables** →
-**New repository variable** ชื่อ `VITE_API_BASE` ค่าเป็น URL ข้างบน **ต่อท้ายด้วย `/api`**
+ยังมี `.github/workflows/deploy-pages.yml` ให้อยู่ — Pages เสิร์ฟได้เฉพาะไฟล์นิ่ง
+จึงขึ้นได้แค่ `client/` ส่วน API ยังต้องอยู่บน Cloud Run เหมือนเดิม ถ้าจะใช้ทางนี้ต้อง
 
-```
-https://irrisat-api-xxxxxxxx-as.a.run.app/api
-```
-
-แล้วไปแท็บ **Actions** → **Deploy to GitHub Pages** → **Run workflow** เพื่อ build ใหม่
-(ค่านี้ถูกฝังตอน build ต้อง deploy ใหม่ทุกครั้งที่เปลี่ยน)
+1. **Settings → Pages → Source** เลือก **GitHub Actions**
+2. ตั้ง repository variable `VITE_API_BASE` เป็น URL ของ Cloud Run ต่อท้ายด้วย `/api`
+3. เพิ่มโดเมน `https://<user>.github.io` เข้า Authorized JavaScript origins ด้วยอีกอัน
 
 ### เรื่องที่ควรรู้
 
@@ -390,31 +484,40 @@ https://irrisat-api-xxxxxxxx-as.a.run.app/api
 new_irresat/
 ├── package.json           สคริปต์รวมสำหรับรันทั้งระบบ
 ├── .env                   ค่าตั้งค่าส่วนตัว (สร้างเองจาก .env.example)
+├── Dockerfile             build หน้าเว็บ + API เป็นอิมเมจเดียวสำหรับ Cloud Run
 │
 ├── server/                Node.js + Express
 │   ├── index.js           จุดเริ่มต้น ประกอบ route ทั้งหมด
 │   ├── config.js          อ่านค่าจาก .env
 │   ├── routes/
+│   │   ├── auth.js        GET  /api/auth/config — บอกหน้าเว็บว่าต้องล็อกอินไหม
 │   │   ├── import.js      POST /api/import      — รับไฟล์ แปลงเป็น GeoJSON
 │   │   ├── fields.js      CRUD /api/fields      — จัดการแปลงที่บันทึกไว้
 │   │   └── analysis.js    POST /api/analysis    — ประมวลผลและสร้าง tile แผนที่
 │   ├── services/
+│   │   ├── auth.js        ตรวจ Google ID token + รายชื่ออีเมลที่อนุญาต
 │   │   ├── parseGeo.js    อ่าน shapefile / kml / kmz / geojson / gpx + แปลงระบบพิกัด
 │   │   ├── normalize.js   ทำความสะอาดรูปทรง คำนวณพื้นที่เป็นไร่/เฮกตาร์
 │   │   ├── gee.js         คุยกับ Google Earth Engine (NDVI + tile แผนที่)
 │   │   ├── weather.js     NASA POWER + FAO-56 Penman-Monteith
 │   │   ├── irrigation.js  Kc, สมดุลน้ำ, คำแนะนำการให้น้ำ, ข้อมูลจำลอง
-│   │   └── store.js       เก็บข้อมูลแปลงลงไฟล์ JSON
+│   │   └── store.js       เก็บข้อมูลแปลงลงไฟล์ JSON + กรองตามเจ้าของ
 │   ├── tools/             สร้างไฟล์ตัวอย่าง + ทดสอบระบบ
 │   └── data/fields.json   ข้อมูลแปลงของคุณ (สร้างอัตโนมัติ, ไม่ถูก commit)
 │
 └── client/                React + Vite
+    ├── public/logo.svg     ตราสัญลักษณ์ (ใช้เป็น favicon และโลโก้บนแถบหัว)
     └── src/
         ├── App.jsx        ประกอบหน้าจอและจัดการ state ทั้งหมด
-        ├── api.js         เรียก API ฝั่งเซิร์ฟเวอร์
+        ├── api.js         เรียก API ฝั่งเซิร์ฟเวอร์ (แนบ token ของ Google ให้เอง)
+        ├── auth.js        คุยกับ Google Identity Services + เก็บ session
+        ├── useAuth.js     สถานะล็อกอินของทั้งหน้าเว็บ + ต่ออายุ token
+        ├── prefs.js       จำค่าที่ผู้ใช้ปรับเอง (เปิด/ปิดแถบข้าง, ความทึบสีแปลง)
         └── components/
             ├── MapView.jsx       แผนที่ Leaflet + เครื่องมือวาด (Geoman)
-            ├── MapControls.jsx   สลับแผนที่ฐาน / ชั้น NDVI / คำอธิบายสี
+            ├── MapControls.jsx   สลับแผนที่ฐาน / ชั้น NDVI / ความทึบสี / คำอธิบายสี
+            ├── SignInButton.jsx  ปุ่มลงชื่อเข้าใช้ด้วย Google
+            ├── UserMenu.jsx      บัญชีที่ล็อกอินอยู่ + ปุ่มออกจากระบบ
             ├── ImportPanel.jsx   นำเข้าไฟล์และเลือกแปลงที่จะบันทึก
             ├── FieldList.jsx     รายการแปลง
             ├── FieldSettings.jsx ตั้งค่าพืช ดิน และบันทึกการให้น้ำ
@@ -425,7 +528,9 @@ new_irresat/
 
 | Method | Path | ทำอะไร |
 | --- | --- | --- |
-| `GET` | `/api/status` | สถานะระบบและการเชื่อมต่อ Earth Engine |
+| `GET` | `/api/status` | สถานะระบบและการเชื่อมต่อ Earth Engine (ไม่ต้องล็อกอิน) |
+| `GET` | `/api/auth/config` | บอกว่าระบบบังคับล็อกอินไหม และใช้ Client ID ตัวไหน (ไม่ต้องล็อกอิน) |
+| `POST` | `/api/auth/verify` | ตรวจ ID token ที่หน้าเว็บถืออยู่ว่ายังใช้ได้และมีสิทธิ์เข้า |
 | `POST` | `/api/import` | อัปโหลดไฟล์ (multipart) → คืนพื้นที่ที่อ่านได้ (ยังไม่บันทึก) |
 | `GET` `POST` | `/api/fields` | อ่าน / เพิ่มแปลง (ส่ง `replace: true` = ลบแปลงเดิมทั้งหมดก่อน) |
 | `DELETE` | `/api/fields` | ลบหลายแปลง (`{ ids: [...] }`) หรือลบทั้งหมดด้วย `?all=1` |
@@ -433,6 +538,9 @@ new_irresat/
 | `GET` | `/api/analysis/options` | รายการชนิดพืช ชนิดดิน และชุดข้อมูลดาวเทียม |
 | `POST` | `/api/analysis` | ประมวลผลแปลงหนึ่ง → NDVI, Kc, ET₀, ETc, สมดุลน้ำรายวัน |
 | `POST` | `/api/analysis/tiles` | URL ของ tile ชั้น NDVI / Kc / ภาพสีจริง |
+
+เส้นทาง `/api/import`, `/api/fields` และ `/api/analysis` ต้องแนบ
+`Authorization: Bearer <Google ID token>` เมื่อตั้ง `GOOGLE_CLIENT_ID` ไว้
 
 ผลลัพธ์จาก Earth Engine และ NASA POWER ถูกแคชไว้ในหน่วยความจำ 30 นาที
 เพื่อไม่ให้เรียกซ้ำถี่เกินไปและกินโควตา

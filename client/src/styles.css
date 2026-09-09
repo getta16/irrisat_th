@@ -77,6 +77,17 @@ select {
   display: grid;
   grid-template-columns: 360px 1fr;
   min-height: 0;
+  transition: grid-template-columns 0.22s ease;
+}
+
+.app.sidebar-closed .workspace {
+  grid-template-columns: 0 1fr;
+}
+
+.app.sidebar-closed .sidebar {
+  transform: translateX(-100%);
+  border-right: none;
+  visibility: hidden;
 }
 
 .main-area {
@@ -97,7 +108,28 @@ select {
   background: linear-gradient(100deg, var(--header) 0%, var(--header-2) 100%);
   color: #eaf3ee;
   border-bottom: 1px solid #0a1a14;
-  z-index: 30;
+  /* ต้องสูงกว่าแผงเครื่องมือบนแผนที่ (500) และตัวโหลด (600)
+     ไม่อย่างนั้นเมนูบัญชีผู้ใช้ที่ยื่นลงมาจะถูกแผงเครื่องมือบังไว้ */
+  z-index: 700;
+}
+
+.sidebar-toggle {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
+  color: #eaf3ee;
+  font-size: 14px;
+  line-height: 1;
+  transition: background 0.12s;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .brand {
@@ -109,15 +141,15 @@ select {
   letter-spacing: 0.01em;
 }
 
+/* URL ของโลโก้ส่งมาจาก App.jsx เพื่อให้ base ของ Vite ถูกต้องตอน build ขึ้น GitHub Pages */
 .brand-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: linear-gradient(140deg, #35c98f, #14795c);
-  display: grid;
-  place-items: center;
-  font-size: 15px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  background-repeat: no-repeat;
+  background-size: 100%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
 .brand small {
@@ -184,6 +216,239 @@ select {
   color: #f3a19a;
 }
 
+/* ── บัญชีผู้ใช้ ───────────────────────────────────────────────── */
+
+.user-menu {
+  position: relative;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 190px;
+  padding: 3px 9px 3px 3px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.1);
+  color: #eaf3ee;
+  font-size: 12.5px;
+}
+
+.user-chip:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.user-chip img,
+.user-chip .avatar-letter {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.user-chip .avatar-letter {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(140deg, #35c98f, #14795c);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.user-chip .user-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-chip .caret {
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 230px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px;
+  z-index: 40;
+}
+
+.user-dropdown-head {
+  padding: 0 4px 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.user-dropdown-head strong {
+  display: block;
+  font-size: 13px;
+}
+
+.user-dropdown-head span {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+/* ── ตอนยังไม่ได้ลงชื่อเข้าใช้ ─────────────────────────────────── */
+
+.boot-screen {
+  height: 100%;
+  display: grid;
+  grid-auto-flow: column;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 24px;
+  background: radial-gradient(1100px 600px at 50% -10%, #1c4a3a 0%, var(--header) 55%, #081713 100%);
+  color: #cfe3d9;
+  font-size: 13.5px;
+}
+
+.signin-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ปุ่มนี้สคริปต์ของ Google เป็นคนวาด เราคุมได้แค่กล่องที่ครอบไว้ */
+.signin-button {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  color-scheme: light;
+}
+
+.signin-busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+  font-size: 12.5px;
+  color: #cfe3d9;
+  white-space: nowrap;
+}
+
+.signin-more {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.1);
+  color: #eaf3ee;
+  font-size: 10px;
+  flex: none;
+}
+
+.signin-more:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* เข้าไม่ได้ — ย้ำด้วยสีแดงเพราะเหตุผลซ่อนอยู่ในเมนูที่ยังไม่ได้กางออก */
+.signin-more.has-error {
+  border-color: rgba(255, 138, 128, 0.6);
+  background: rgba(255, 82, 82, 0.28);
+}
+
+.signin-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(300px, calc(100vw - 24px));
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px;
+  z-index: 40;
+}
+
+.signin-dropdown .note {
+  margin-bottom: 8px;
+}
+
+.signin-foot {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* กินพื้นที่แถบข้างทั้งแถบ เพราะเป็นเนื้อหาเดียวที่มีตอนยังไม่ลงชื่อเข้าใช้ */
+.signed-out-card {
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.signed-out-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  background: var(--green-50);
+  border: 1px solid var(--green-200);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.signed-out-card h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.signed-out-card p {
+  margin: 0 0 8px;
+  max-width: 30ch;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.signed-out-card p:last-child {
+  margin-bottom: 0;
+}
+
+.signed-out-hint {
+  margin-top: 6px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.signed-out-hint strong {
+  color: var(--ink-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* ── แถบข้าง ──────────────────────────────────────────────────── */
 
 .sidebar {
@@ -193,6 +458,8 @@ select {
   flex-direction: column;
   min-height: 0;
   z-index: 20;
+  overflow: hidden;
+  transition: transform 0.22s ease, visibility 0.22s;
 }
 
 .sidebar-scroll {
@@ -555,6 +822,31 @@ select {
   background: var(--surface);
   box-shadow: var(--shadow);
   color: var(--green-600);
+}
+
+.slider-row {
+  margin-top: 8px;
+  width: 190px;
+}
+
+.slider-row label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.slider-row .slider-value {
+  font-family: var(--mono);
+  color: var(--ink-2);
+}
+
+.slider-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--green);
+  margin: 0;
 }
 
 .legend-bar {
@@ -945,5 +1237,13 @@ tbody tr.stress {
   }
   .sidebar {
     max-height: 42vh;
+  }
+  /* จอแคบไม่มีที่ให้ย่อคอลัมน์ ใช้วิธีซ่อนทั้งแถวแทน */
+  .app.sidebar-closed .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: 0 1fr;
+  }
+  .header-controls .user-name {
+    display: none;
   }
 }

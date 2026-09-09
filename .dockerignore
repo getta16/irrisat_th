@@ -1,0 +1,21 @@
+# กันไฟล์ที่ไม่ควรขึ้นไปอยู่ในอิมเมจ — สำคัญที่สุดคือคีย์กับ .env
+# (คีย์ service account ต้องส่งผ่าน Secret Manager ตอนรันเท่านั้น ห้ามฝังในอิมเมจ)
+.env
+.env.*
+*-key.json
+*service-account*.json
+
+# ติดตั้ง/สร้างใหม่ในอิมเมจอยู่แล้ว การคัดลอกไปด้วยทำให้ build ช้าและอาจได้ binary ผิดแพลตฟอร์ม
+**/node_modules
+**/dist
+
+# ข้อมูลแปลงของผู้ใช้ — บนจริงอ่านจาก Cloud Storage ไม่ใช่จากดิสก์ในคอนเทนเนอร์
+server/data
+
+.git
+.github
+.claude
+README.md
+samples
+*.png
+*.log

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './api.js'
 import { isoDate, shiftDays } from './utils.js'
+import { useAuth } from './useAuth.js'
+import { loadPref, savePref } from './prefs.js'
 
 import MapView from './components/MapView.jsx'
 import MapControls from './components/MapControls.jsx'
@@ -8,12 +10,19 @@ import ImportPanel from './components/ImportPanel.jsx'
 import FieldList from './components/FieldList.jsx'
 import FieldSettings from './components/FieldSettings.jsx'
 import AnalysisPanel from './components/AnalysisPanel.jsx'
+import SignInButton from './components/SignInButton.jsx'
+import UserMenu from './components/UserMenu.jsx'
 
 // NASA POWER มีข้อมูลช้ากว่าปัจจุบันราว 3 วัน
 const DEFAULT_END = shiftDays(isoDate(new Date()), -3)
 const DEFAULT_START = shiftDays(DEFAULT_END, -180)
 
 export default function App() {
+  const auth = useAuth()
+  const authed = auth.phase === 'ready'
+  // ยังไม่ได้ลงชื่อเข้าใช้ทั้งที่เซิร์ฟเวอร์บังคับ — เปิดแผนที่ดูได้ แต่ยังแตะข้อมูลแปลงไม่ได้
+  const needsSignIn = auth.phase === 'signed-out'
+
   const [status, setStatus] = useState(null)
   const [options, setOptions] = useState(null)
 
@@ -29,6 +38,10 @@ export default function App() {
   const [analysisLoading, setAnalysisLoading] = useState(false)
   const [analysisError, setAnalysisError] = useState(null)
   const [reloadToken, setReloadToken] = useState(0)
+
+  // ค่าที่ผู้ใช้ปรับเองแล้วควรจำไว้ให้ครั้งหน้า
+  const [sidebarOpen, setSidebarOpen] = useState(() => loadPref('sidebarOpen', true))
+  const [fieldOpacity, setFieldOpacity] = useState(() => loadPref('fieldOpacity', 0.22))
 
   const [basemap, setBasemap] = useState('satellite')
   const [layer, setLayer] = useState('none')
@@ -50,9 +63,13 @@ export default function App() {
 
   const selected = fields.find((f) => f.id === selectedId) || null
 
+  useEffect(() => savePref('sidebarOpen', sidebarOpen), [sidebarOpen])
+  useEffect(() => savePref('fieldOpacity', fieldOpacity), [fieldOpacity])
+
   // สถานะ Earth Engine — เซิร์ฟเวอร์ต้องใช้เวลายืนยันตัวตนสักครู่หลังเพิ่งสตาร์ต
   // และหน้าเว็บมักถูกเปิดขึ้นก่อนที่ API จะพร้อมรับคำขอด้วยซ้ำ ถ้าถามครั้งเดียว
   // ป้ายสถานะจะค้างที่ "ไม่ได้เชื่อมต่อดาวเทียม" ทั้งที่เชื่อมต่อได้แล้ว จึงถามซ้ำจนกว่าจะพร้อม
+  // (/api/status เปิดให้เรียกได้โดยไม่ต้องล็อกอิน จึงถามได้ตั้งแต่ยังไม่ลงชื่อเข้าใช้)
   useEffect(() => {
     let timer
     let stopped = false
@@ -75,10 +92,11 @@ export default function App() {
       stopped = true
       clearTimeout(timer)
     }
-  }, [])
+  }, [authed])
 
   // โหลดข้อมูลตั้งต้น
   useEffect(() => {
+    if (!authed) return
     api.options().then(setOptions).catch(() => {})
     api
       .listFields()
@@ -89,12 +107,15 @@ export default function App() {
           setFitToken((t) => t + 1)
         }
       })
-      .catch((err) => notify(`โหลดรายการแปลงไม่สำเร็จ: ${err.message}`, 'error'))
-  }, [notify])
+      .catch((err) => {
+        // 401 จัดการเองอยู่แล้วด้วยการพากลับไปหน้าล็อกอิน ไม่ต้องเด้งข้อความซ้ำ
+        if (err.status !== 401) notify(`โหลดรายการแปลงไม่สำเร็จ: ${err.message}`, 'error')
+      })
+  }, [authed, notify])
 
   // คำนวณใหม่ทุกครั้งที่เปลี่ยนแปลง / เปลี่ยนช่วงวันที่ / แก้การตั้งค่า
   useEffect(() => {
-    if (!selected) {
+    if (!selected || !authed) {
       setAnalysis(null)
       return
     }
@@ -120,11 +141,11 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [selected?.id, selected?.updatedAt, range.start, range.end, reloadToken])
+  }, [authed, selected?.id, selected?.updatedAt, range.start, range.end, reloadToken])
 
   // ชั้นซ้อนจาก Earth Engine
   useEffect(() => {
-    if (layer === 'none' || !selected) {
+    if (layer === 'none' || !selected || !authed) {
       setOverlay(null)
       setOverlayError(null)
       return
@@ -157,7 +178,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [layer, selected?.id, selected?.settings?.collection, range.start, range.end])
+  }, [authed, layer, selected?.id, selected?.settings?.collection, range.start, range.end])
 
 
   /** หลังบันทึกแปลงชุดใหม่: เลือกแปลงแรก + ซูมไปหา แล้ว useEffect จะสั่งวิเคราะห์เอง */
@@ -178,7 +199,7 @@ export default function App() {
   )
 
   async function handleDeleteField(field) {
-    if (!confirm(`ลบแปลง "${field.name}" ออกจากระบบ?`)) return
+    if (!confirm(`ลบแปลง "${field.name}" ทิ้ง?`)) return
     setDeleting(true)
     try {
       await api.deleteField(field.id)
@@ -193,13 +214,13 @@ export default function App() {
 
   async function handleDeleteAll() {
     if (!fields.length) return
-    if (!confirm(`ลบแปลงทั้งหมด ${fields.length} แปลงออกจากระบบ?`)) return
+    if (!confirm(`ลบแปลงของคุณทั้งหมด ${fields.length} แปลงทิ้ง?`)) return
     setDeleting(true)
     try {
       const res = await api.deleteAllFields()
       setFields([])
       setSelectedId(null)
-      notify(`ลบแปลงทั้งหมด ${res?.removed ?? fields.length} แปลงแล้ว`)
+      notify(`ลบแปลงของคุณทั้งหมด ${res?.removed ?? fields.length} แปลงแล้ว`)
     } catch (err) {
       notify(err.message, 'error')
     } finally {
@@ -222,6 +243,17 @@ export default function App() {
 
   const zoomToSelected = () => setFitToken((t) => t + 1)
 
+  // ออกจากระบบแล้วต้องไม่เหลือข้อมูลแปลงของคนก่อนค้างอยู่ในหน้าจอ
+  // (ไม่ล้าง status เพราะป้ายสถานะ Earth Engine ไม่ใช่ข้อมูลส่วนตัว และยังต้องแสดงต่อ)
+  useEffect(() => {
+    if (authed) return
+    setFields([])
+    setSelectedId(null)
+    setPreview([])
+    setAnalysis(null)
+    setOverlay(null)
+  }, [authed])
+
   const geeChip = (() => {
     if (!status) return { cls: 'down', text: 'กำลังเชื่อมต่อ…' }
     const mode = status.gee?.mode
@@ -230,13 +262,36 @@ export default function App() {
     return { cls: 'down', text: 'ไม่ได้เชื่อมต่อดาวเทียม' }
   })()
 
+  if (auth.phase === 'loading') {
+    return (
+      <div className="boot-screen">
+        <span className="spinner" />
+        <span>กำลังตรวจสอบการเข้าสู่ระบบ…</span>
+      </div>
+    )
+  }
+
   return (
-    <div className="app">
+    <div className={`app${sidebarOpen ? '' : ' sidebar-closed'}`}>
       <header className="header">
+        <button
+          className="sidebar-toggle"
+          onClick={() => setSidebarOpen((o) => !o)}
+          aria-expanded={sidebarOpen}
+          aria-controls="sidebar"
+          title={sidebarOpen ? 'ซ่อนแถบเครื่องมือ' : 'แสดงแถบเครื่องมือ'}
+        >
+          <span aria-hidden="true">{sidebarOpen ? '⟨' : '☰'}</span>
+        </button>
+
         <div className="brand">
-          <span className="brand-mark">💧</span>
+          <span
+            className="brand-mark"
+            style={{ backgroundImage: `url(${import.meta.env.BASE_URL}logo.svg)` }}
+            aria-hidden="true"
+          />
           <span>
-            IrriSAT-TH
+            iWASAMSAT
             <small>วางแผนการให้น้ำจากภาพถ่ายดาวเทียม</small>
           </span>
         </div>
@@ -267,41 +322,67 @@ export default function App() {
             <span className="dot" />
             {geeChip.text}
           </span>
+
+          {auth.user ? (
+            <UserMenu user={auth.user} onSignOut={() => auth.signOut()} />
+          ) : (
+            needsSignIn && (
+              <SignInButton clientId={auth.clientId} error={auth.error} busy={auth.checking} />
+            )
+          )}
         </div>
       </header>
 
       <div className="workspace">
-        <aside className="sidebar">
+        <aside className="sidebar" id="sidebar" aria-hidden={!sidebarOpen}>
           <div className="sidebar-scroll">
-            <ImportPanel
-              preview={preview}
-              setPreview={setPreview}
-              existingCount={fields.length}
-              onImported={adoptFields}
-              notify={notify}
-            />
+            {needsSignIn ? (
+              <section className="card signed-out-card">
+                <span className="signed-out-icon" aria-hidden="true">
+                  🔒
+                </span>
+                <h2>ลงชื่อเข้าใช้เพื่อเริ่มใช้งาน</h2>
+                <p>
+                  แผนที่และชั้นข้อมูลดาวเทียมเปิดดูได้เลย แต่การนำเข้าแปลง วาดแปลงใหม่
+                  และผลวิเคราะห์ความต้องการน้ำเป็นข้อมูลส่วนตัวของแต่ละบัญชี
+                </p>
+                <p className="signed-out-hint">
+                  กดปุ่ม <strong>"ลงชื่อเข้าใช้ด้วย Google"</strong> ที่มุมขวาบน
+                </p>
+              </section>
+            ) : (
+              <>
+                <ImportPanel
+                  preview={preview}
+                  setPreview={setPreview}
+                  existingCount={fields.length}
+                  onImported={adoptFields}
+                  notify={notify}
+                />
 
-            <FieldList
-              fields={fields}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              onZoom={zoomToSelected}
-              drawing={drawing}
-              onToggleDraw={() => setDrawing((d) => !d)}
-              onDelete={handleDeleteField}
-              onDeleteAll={handleDeleteAll}
-              busy={deleting}
-            />
+                <FieldList
+                  fields={fields}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  onZoom={zoomToSelected}
+                  drawing={drawing}
+                  onToggleDraw={() => setDrawing((d) => !d)}
+                  onDelete={handleDeleteField}
+                  onDeleteAll={handleDeleteAll}
+                  busy={deleting}
+                />
 
-            {selected && options && (
-              <FieldSettings
-                key={selected.id}
-                field={selected}
-                options={options}
-                notify={notify}
-                onUpdated={(updated) => setFields((f) => f.map((x) => (x.id === updated.id ? updated : x)))}
-                onDeleted={(id) => dropFields([id])}
-              />
+                {selected && options && (
+                  <FieldSettings
+                    key={selected.id}
+                    field={selected}
+                    options={options}
+                    notify={notify}
+                    onUpdated={(updated) => setFields((f) => f.map((x) => (x.id === updated.id ? updated : x)))}
+                    onDeleted={(id) => dropFields([id])}
+                  />
+                )}
+              </>
             )}
           </div>
         </aside>
@@ -318,6 +399,7 @@ export default function App() {
               basemap={basemap}
               overlay={overlay}
               overlayOpacity={opacity}
+              fieldOpacity={fieldOpacity}
               fitToken={fitToken}
             />
             <MapControls
@@ -330,6 +412,8 @@ export default function App() {
               overlay={overlay}
               overlayError={overlayError}
               overlayLoading={overlayLoading}
+              fieldOpacity={fieldOpacity}
+              setFieldOpacity={setFieldOpacity}
               disabled={!selected}
             />
             {drawing && (

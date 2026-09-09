@@ -32,3 +32,27 @@ export const GCS_FIELDS_OBJECT = process.env.GCS_FIELDS_OBJECT || 'fields.json'
 export const ALLOW_DEMO = String(process.env.ALLOW_DEMO || 'true') !== 'false'
 
 export const MAX_UPLOAD_MB = Number(process.env.MAX_UPLOAD_MB || 60)
+
+// ── ล็อกอินด้วยบัญชี Google ────────────────────────────────────────────
+// ตั้ง GOOGLE_CLIENT_ID = OAuth 2.0 Client ID (ชนิด Web application) จาก Google Cloud
+// เว้นว่าง = ปิดระบบล็อกอิน ใครเปิดหน้าเว็บก็ใช้ได้ (สะดวกตอนพัฒนาในเครื่อง)
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || ''
+
+// จำกัดว่าอีเมลไหนเข้าได้บ้าง คั่นด้วยจุลภาค เว้นว่าง = ทุกบัญชี Google เข้าได้
+//   ALLOWED_EMAILS=somchai@gmail.com,malee@gmail.com
+export const ALLOWED_EMAILS = (process.env.ALLOWED_EMAILS || '')
+  .split(',')
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean)
+
+// จำกัดเป็นทั้งโดเมน เช่น ALLOWED_DOMAINS=rid.go.th,ku.ac.th
+export const ALLOWED_DOMAINS = (process.env.ALLOWED_DOMAINS || '')
+  .split(',')
+  .map((s) => s.trim().toLowerCase().replace(/^@/, ''))
+  .filter(Boolean)
+
+export const AUTH_ENABLED = Boolean(GOOGLE_CLIENT_ID)
+
+// แต่ละคนเห็นเฉพาะแปลงของตัวเอง แต่แปลงที่บันทึกไว้ก่อนเปิดใช้การล็อกอินยังไม่มีเจ้าของ
+// ตั้งอีเมลไว้ตรงนี้เพื่อโอนแปลงเก่าทั้งหมดให้บัญชีนั้นครั้งเดียวตอนเริ่มระบบ
+export const LEGACY_OWNER_EMAIL = (process.env.LEGACY_OWNER_EMAIL || '').trim().toLowerCase()

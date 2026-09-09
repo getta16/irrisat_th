@@ -45,7 +45,7 @@ const geojson = {
 const kml = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
-    <name>แปลงตัวอย่าง IrriSAT-TH</name>
+    <name>แปลงตัวอย่าง iWASAMSAT</name>
 ${FIELDS.map(
   (f) => `    <Placemark>
       <name>${f.name}</name>

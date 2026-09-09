@@ -64,7 +64,7 @@ export default function AnalysisPanel({ field, analysis, loading, error, onRetry
         {analysis && (
           <button
             className="btn ghost sm"
-            onClick={() => downloadCsv(`${field.name}-irrisat.csv`, analysis.days)}
+            onClick={() => downloadCsv(`${field.name}-iwasamsat.csv`, analysis.days)}
           >
             ⬇ CSV
           </button>

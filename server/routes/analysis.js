@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { getField } from '../services/store.js'
+import { ownerOf } from '../services/auth.js'
 import { getNdviSeries, getNdviTiles, geeStatus, initEarthEngine, COLLECTIONS } from '../services/gee.js'
 import { getDailyWeather } from '../services/weather.js'
 import { runWaterBalance, demoNdviSeries, SOIL_TYPES, CROPS } from '../services/irrigation.js'
@@ -58,7 +59,7 @@ router.post('/', async (req, res) => {
     let irrigations = body.irrigations || []
 
     if (body.fieldId) {
-      const field = getField(body.fieldId)
+      const field = getField(body.fieldId, ownerOf(req))
       if (!field) return res.status(404).json({ error: 'ไม่พบแปลงนี้' })
       geometry = field.geometry
       centroid = field.centroid
@@ -148,7 +149,7 @@ router.post('/tiles', async (req, res) => {
     const body = req.body || {}
     let geometry = body.geometry
     if (body.fieldId) {
-      const field = getField(body.fieldId)
+      const field = getField(body.fieldId, ownerOf(req))
       if (!field) return res.status(404).json({ error: 'ไม่พบแปลงนี้' })
       geometry = field.geometry
     }
