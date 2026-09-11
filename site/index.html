@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>iWASAMSAT — ระบบวางแผนการให้น้ำจากภาพถ่ายดาวเทียม</title>
+  <meta name="description" content="iWASAMSAT ระบบวางแผนการให้น้ำชลประทานรายแปลงจากภาพถ่ายดาวเทียม" />
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="logo.svg" alt="" />
+      <div>
+        <p class="name">iWASAMSAT</p>
+        <p class="tag">ระบบวางแผนการให้น้ำจากภาพถ่ายดาวเทียม</p>
+      </div>
+    </header>
+
+    <h1>วางแผนการให้น้ำรายแปลง จากข้อมูลดาวเทียมและสภาพอากาศ</h1>
+    <p>
+      iWASAMSAT ประเมินความต้องการน้ำของพืชในแต่ละแปลงจากค่าดัชนีพืชพรรณ (NDVI)
+      ของภาพถ่ายดาวเทียม Sentinel-2 ร่วมกับค่าการคายระเหยน้ำอ้างอิง (ET₀) จาก NASA POWER
+      แล้วคำนวณสมดุลน้ำในเขตรากเพื่อแนะนำว่าควรให้น้ำเมื่อไรและปริมาณเท่าใด
+    </p>
+
+    <a class="btn" href="https://iwasamsat-29589356609.us-central1.run.app/">เข้าสู่ระบบ iWASAMSAT</a>
+
+    <div class="card">
+      <h2 style="margin-top:0">ทำอะไรได้บ้าง</h2>
+      <ul>
+        <li>นำเข้าขอบเขตแปลงจากไฟล์ Shapefile, KML/KMZ, GeoJSON หรือ GPX หรือวาดบนแผนที่</li>
+        <li>ดูค่า NDVI รายแปลงย้อนหลังจาก Google Earth Engine</li>
+        <li>คำนวณค่าสัมประสิทธิ์พืช (Kc) และความต้องการน้ำของพืช (ETc)</li>
+        <li>แนะนำรอบและปริมาณการให้น้ำจากสมดุลน้ำในเขตราก</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">การลงชื่อเข้าใช้</h2>
+      <p>
+        ระบบใช้บัญชี Google ในการลงชื่อเข้าใช้ เพื่อแยกข้อมูลแปลงของผู้ใช้แต่ละคนออกจากกัน
+        และจำกัดการใช้งานเฉพาะบัญชีที่ได้รับอนุญาต ระบบขอเพียงชื่อ อีเมล และรูปโปรไฟล์เท่านั้น
+        อ่านรายละเอียดได้ที่<a href="privacy.html">นโยบายความเป็นส่วนตัว</a>
+      </p>
+    </div>
+
+    <hr class="lang-divider" />
+
+    <h2>About iWASAMSAT (English)</h2>
+    <p>
+      iWASAMSAT is a field-level irrigation planning tool. It estimates crop water demand from
+      Sentinel-2 NDVI (via Google Earth Engine) and reference evapotranspiration from NASA POWER,
+      then runs a root-zone water balance to recommend when and how much to irrigate.
+      Users sign in with their Google account so that each user's fields are kept separate;
+      the app only requests basic profile information (name, email address and profile picture).
+      See the <a href="privacy.html#en">Privacy Policy</a>.
+    </p>
+
+    <footer>
+      <span>© 2026 iWASAMSAT</span>
+      <a href="privacy.html">นโยบายความเป็นส่วนตัว / Privacy Policy</a>
+      <a href="mailto:gettiraput@gmail.com">ติดต่อ: gettiraput@gmail.com</a>
+    </footer>
+  </div>
+</body>
+</html>

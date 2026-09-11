@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>นโยบายความเป็นส่วนตัว — iWASAMSAT</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a href="./"><img src="logo.svg" alt="iWASAMSAT" /></a>
+      <div>
+        <p class="name">iWASAMSAT</p>
+        <p class="tag">นโยบายความเป็นส่วนตัว · Privacy Policy</p>
+      </div>
+    </header>
+
+    <!-- ต้องตรงกับสิ่งที่ระบบเก็บจริง: ดู server/services/auth.js (ownerOf) และ server/services/store.js -->
+    <h1>นโยบายความเป็นส่วนตัว</h1>
+    <p class="muted">ปรับปรุงล่าสุด 11 กันยายน 2569</p>
+
+    <h2>ข้อมูลที่เราได้รับจากบัญชี Google</h2>
+    <p>เมื่อคุณลงชื่อเข้าใช้ด้วยบัญชี Google ระบบจะได้รับข้อมูลต่อไปนี้จาก Google เท่านั้น</p>
+    <ul>
+      <li>รหัสประจำบัญชี Google (account ID)</li>
+      <li>อีเมล</li>
+      <li>ชื่อที่แสดงและรูปโปรไฟล์</li>
+    </ul>
+    <p>ระบบไม่ได้ขอสิทธิ์เข้าถึง Gmail, Google Drive, รายชื่อติดต่อ หรือข้อมูลอื่นในบัญชีของคุณ</p>
+
+    <h2>เราใช้ข้อมูลนั้นอย่างไร</h2>
+    <ul>
+      <li><strong>อีเมล</strong> ใช้ตรวจสอบว่าบัญชีของคุณได้รับอนุญาตให้ใช้ระบบหรือไม่</li>
+      <li><strong>รหัสบัญชีและอีเมล</strong> บันทึกคู่กับแปลงที่คุณสร้าง เพื่อให้คุณเห็นเฉพาะแปลงของตัวเอง</li>
+      <li><strong>ชื่อและรูปโปรไฟล์</strong> ใช้แสดงบนแถบเมนูในเบราว์เซอร์ของคุณเท่านั้น ไม่ได้บันทึกไว้ที่เซิร์ฟเวอร์</li>
+    </ul>
+
+    <h2>ข้อมูลที่คุณสร้างในระบบ</h2>
+    <p>
+      ขอบเขตแปลง ชื่อแปลง และค่าที่ตั้งไว้สำหรับการคำนวณ จะถูกเก็บบน Google Cloud Storage
+      เพื่อให้คุณกลับมาใช้ต่อได้ ส่วนการตั้งค่าหน้าจอและสถานะการลงชื่อเข้าใช้จะเก็บไว้ใน
+      localStorage ของเบราว์เซอร์คุณเอง ระบบไม่ใช้คุกกี้เพื่อการติดตามหรือโฆษณา
+    </p>
+
+    <h2>การส่งข้อมูลให้บริการภายนอก</h2>
+    <p>ระบบไม่ขาย ไม่แลกเปลี่ยน และไม่เปิดเผยข้อมูลส่วนตัวของคุณให้บุคคลอื่น ข้อมูลจะไปถึงบริการภายนอกเฉพาะที่จำเป็นต่อการทำงานเท่านั้น</p>
+    <ul>
+      <li><strong>Google</strong> สำหรับการลงชื่อเข้าใช้ การประมวลผลภาพดาวเทียม (Earth Engine) และการเก็บข้อมูล (Cloud Run, Cloud Storage)</li>
+      <li><strong>NASA POWER</strong> ได้รับเฉพาะพิกัดของแปลงเพื่อดึงข้อมูลสภาพอากาศ ไม่มีข้อมูลบัญชีของคุณ</li>
+      <li><strong>OpenStreetMap และ Esri</strong> ให้บริการภาพแผนที่พื้นหลังที่เบราว์เซอร์ของคุณโหลดโดยตรง</li>
+    </ul>
+
+    <h2>การลบข้อมูล</h2>
+    <p>
+      คุณลบแปลงของตัวเองได้ทุกเมื่อในระบบ หากต้องการให้ลบข้อมูลทั้งหมดที่ผูกกับบัญชีของคุณ
+      ติดต่อผู้ดูแลตามอีเมลด้านล่าง เราจะดำเนินการภายใน 30 วัน
+      คุณยกเลิกสิทธิ์ที่ให้แอปนี้ได้เองที่
+      <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>
+    </p>
+
+    <h2>ติดต่อ</h2>
+    <p>ผู้ดูแลระบบ iWASAMSAT: <a href="mailto:gettiraput@gmail.com">gettiraput@gmail.com</a></p>
+
+    <hr class="lang-divider" id="en" />
+
+    <h1>Privacy Policy</h1>
+    <p class="muted">Last updated: September 11, 2026</p>
+
+    <h2>Information we receive from your Google account</h2>
+    <p>When you sign in with Google, iWASAMSAT receives only:</p>
+    <ul>
+      <li>your Google account ID</li>
+      <li>your email address</li>
+      <li>your display name and profile picture</li>
+    </ul>
+    <p>We do not request access to Gmail, Google Drive, contacts or any other data in your Google account.</p>
+
+    <h2>How we use it</h2>
+    <ul>
+      <li><strong>Email address</strong> — to check whether your account is permitted to use the service.</li>
+      <li><strong>Account ID and email address</strong> — stored with the fields you create, so that you only see your own fields.</li>
+      <li><strong>Name and profile picture</strong> — shown in the menu bar in your browser only; not stored on our server.</li>
+    </ul>
+
+    <h2>Data you create</h2>
+    <p>
+      Field boundaries, field names and calculation settings are stored on Google Cloud Storage so
+      you can return to them later. Display preferences and your sign-in session are kept in your
+      browser's localStorage. We do not use tracking or advertising cookies.
+    </p>
+
+    <h2>Sharing with third parties</h2>
+    <p>We do not sell, trade or disclose your personal information. Data reaches third parties only where the service needs it to work:</p>
+    <ul>
+      <li><strong>Google</strong> — sign-in, satellite image processing (Earth Engine) and hosting/storage (Cloud Run, Cloud Storage).</li>
+      <li><strong>NASA POWER</strong> — receives field coordinates only, to retrieve weather data; no account information is sent.</li>
+      <li><strong>OpenStreetMap and Esri</strong> — base map tiles loaded directly by your browser.</li>
+    </ul>
+
+    <h2>Deleting your data</h2>
+    <p>
+      You can delete your fields at any time in the app. To have all data linked to your account
+      deleted, email the contact below and we will do so within 30 days. You can revoke this app's
+      access at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.
+    </p>
+
+    <h2>Contact</h2>
+    <p>iWASAMSAT administrator: <a href="mailto:gettiraput@gmail.com">gettiraput@gmail.com</a></p>
+
+    <footer>
+      <a href="./">← กลับหน้าแรก / Home</a>
+      <span>© 2026 iWASAMSAT</span>
+    </footer>
+  </div>
+</body>
+</html>

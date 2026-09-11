@@ -1,17 +1,16 @@
-# build หน้าเว็บ (client) แล้ว deploy ขึ้น GitHub Pages
+# เผยแพร่หน้า homepage และนโยบายความเป็นส่วนตัว (โฟลเดอร์ site/) ขึ้น GitHub Pages
 #
-# ── ปิดการรันอัตโนมัติไว้แล้ว ─────────────────────────────────────────
-# เว็บจริงย้ายไปอยู่บน Render (ดู render.yaml) ซึ่งเสิร์ฟทั้งหน้าเว็บและ API
-# จากที่อยู่เดียวกัน ถ้าปล่อยให้ workflow นี้รันทุกครั้งที่ push จะได้เว็บซ้ำอีกชุด
-# ที่ getta16.github.io/irrisat_th ซึ่งต่อ API ไม่ได้ — เก็บไฟล์ไว้เผื่ออยากใช้
-# แต่ต้องสั่งรันเองจากแท็บ Actions เท่านั้น
-#
-# หมายเหตุ: Pages เสิร์ฟได้เฉพาะไฟล์นิ่ง — ส่วน API (server/) ที่คุยกับ Earth Engine
-# ต้องโฮสต์แยกเอง แล้วตั้ง repository variable ชื่อ VITE_API_BASE ให้ชี้ไปที่นั่น
-# เช่น https://irrisatth.onrender.com/api  (ถ้าไม่ตั้ง หน้าเว็บจะขึ้นแต่ต่อ API ไม่ได้)
+# ตัวระบบจริงอยู่บน Cloud Run ที่เดียว (ดู Dockerfile) — หน้าบน Pages มีไว้เป็นลิงก์
+# Homepage / Privacy policy ใน OAuth consent screen ของ Google ซึ่งบังคับให้อยู่บนโดเมน
+# ที่ยืนยันความเป็นเจ้าของได้ ใช้โดเมน run.app ของ Google เองไม่ได้
 name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -25,41 +24,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: client/package-lock.json
-
-      - name: ติดตั้ง dependencies
-        working-directory: client
-        run: npm ci
-
-      - name: Build
-        working-directory: client
-        env:
-          # Pages ของ repo นี้อยู่ใต้ path /irrisat_th/
-          VITE_BASE: /${{ github.event.repository.name }}/
-          VITE_API_BASE: ${{ vars.VITE_API_BASE }}
-        run: npm run build
-
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: client/dist
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
       - id: deployment
         uses: actions/deploy-pages@v4

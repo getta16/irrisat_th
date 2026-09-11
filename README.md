@@ -458,14 +458,23 @@ curl.exe https://iwasamsat-xxxxxxxx-uc.a.run.app/api/status
 ควรได้ `"mode":"earth-engine"` ถ้าได้ `"mode":"unavailable"` ให้ดูล็อกด้วย
 `gcloud run services logs read iwasamsat --region us-central1`
 
-### ถ้าอยากแยกหน้าเว็บไปไว้ GitHub Pages แทน
+### หน้า homepage และนโยบายความเป็นส่วนตัวบน GitHub Pages
 
-ยังมี `.github/workflows/deploy-pages.yml` ให้อยู่ — Pages เสิร์ฟได้เฉพาะไฟล์นิ่ง
-จึงขึ้นได้แค่ `client/` ส่วน API ยังต้องอยู่บน Cloud Run เหมือนเดิม ถ้าจะใช้ทางนี้ต้อง
+จะเปลี่ยนแอปใน Google Auth Platform จาก Testing เป็น **In production** ได้ Google บังคับให้มี
+Homepage URL และ Privacy policy URL บนโดเมนที่ยืนยันความเป็นเจ้าของได้ — ใช้ `run.app`
+ไม่ได้เพราะเป็นโดเมนของ Google เอง จึงเอาโฟลเดอร์ `site/` ขึ้น GitHub Pages แทน
 
-1. **Settings → Pages → Source** เลือก **GitHub Actions**
-2. ตั้ง repository variable `VITE_API_BASE` เป็น URL ของ Cloud Run ต่อท้ายด้วย `/api`
-3. เพิ่มโดเมน `https://<user>.github.io` เข้า Authorized JavaScript origins ด้วยอีกอัน
+`.github/workflows/deploy-pages.yml` จะเผยแพร่ `site/` ให้อัตโนมัติทุกครั้งที่แก้ไฟล์ในนั้นแล้ว push
+(Settings → Pages → Source ต้องเป็น **GitHub Actions**) ได้เป็น
+
+| ช่องในหน้า Branding | ค่า |
+| --- | --- |
+| Application home page | `https://getta16.github.io/irrisat_th/` |
+| Application privacy policy link | `https://getta16.github.io/irrisat_th/privacy.html` |
+| Authorized domains | `getta16.github.io` |
+
+ถ้าแก้ URL ของ Cloud Run หรืออีเมลติดต่อ อย่าลืมแก้ใน `site/index.html` และ `site/privacy.html` ด้วย
+และถ้าระบบเริ่มเก็บข้อมูลผู้ใช้เพิ่ม ต้องแก้นโยบายใน `site/privacy.html` ให้ตรงกัน
 
 ### เรื่องที่ควรรู้
 
