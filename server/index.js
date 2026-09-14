@@ -56,7 +56,7 @@ app.use((err, _req, res, _next) => {
 const store = await initStore()
 
 app.listen(PORT, () => {
-  console.log(`\n  iWASAMSAT API   →  http://localhost:${PORT}`)
+  console.log(`\n  IRRISAT-THAI API   →  http://localhost:${PORT}`)
   console.log(
     `  ข้อมูลแปลง      →  ${store.where === 'gcs' ? `gs://${GCS_BUCKET}/${GCS_FIELDS_OBJECT}` : FIELDS_FILE} (${store.count} แปลง)`
   )

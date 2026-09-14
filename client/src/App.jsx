@@ -291,7 +291,7 @@ export default function App() {
             aria-hidden="true"
           />
           <span>
-            iWASAMSAT
+            IRRISAT-THAI
             <small>วางแผนการให้น้ำจากภาพถ่ายดาวเทียม</small>
           </span>
         </div>

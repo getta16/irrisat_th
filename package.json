@@ -1,5 +1,5 @@
 {
-  "name": "iwasamsat",
+  "name": "irrisat-thai",
   "version": "1.0.0",
   "private": true,
   "description": "ระบบวางแผนการให้น้ำชลประทานด้วยภาพถ่ายดาวเทียม (IrriSAT-style) รองรับการนำเข้า Shapefile / KML / KMZ / GeoJSON",
