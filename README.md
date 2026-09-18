@@ -76,6 +76,37 @@ GEE_PROJECT=ชื่อ-google-cloud-project
 รีสตาร์ทเซิร์ฟเวอร์ — ถ้าสำเร็จจะขึ้นข้อความ `Earth Engine → พร้อมใช้งาน`
 และป้ายสถานะมุมขวาบนของเว็บจะเปลี่ยนเป็นสีเขียว **"Earth Engine พร้อมใช้งาน"**
 
+### 5. ให้สิทธิ์ service account ในระดับ writer
+
+**สำคัญ** — Earth Engine แยกสิทธิ์ "คำนวณ" ออกจาก "สร้างชั้นแผนที่"
+
+| บทบาท | คำนวณ NDVI (กราฟ) | ชั้นแผนที่ (tile) |
+| --- | --- | --- |
+| `roles/earthengine.viewer` | ได้ | **ไม่ได้** |
+| `roles/earthengine.writer` | ได้ | ได้ |
+
+ถ้าได้แค่ viewer อาการจะหลอกมาก คือกราฟ NDVI ขึ้นครบ แต่พอเปิดชั้นแผนที่จะฟ้อง
+`สร้างชั้นแผนที่จาก Earth Engine ไม่สำเร็จ` โดยมี `Permission 'earthengine.maps.create' denied`
+อยู่ในช่อง `detail` แก้ด้วย
+
+```bash
+gcloud projects add-iam-policy-binding ชื่อ-google-cloud-project \
+  --member="serviceAccount:อีเมล-service-account" \
+  --role="roles/earthengine.writer"
+```
+
+> ถ้า service account มาจาก **คนละโปรเจกต์** กับที่ตั้งใน `GEE_PROJECT`
+> (เช่นคีย์เป็นของ `iwsamsat-analysis-system` แต่ `GEE_PROJECT=iwasamsat`)
+> ต้องให้อีกหนึ่ง role ด้วย ไม่งั้นจะฟ้อง `Caller does not have required permission to use project`
+>
+> ```bash
+> gcloud projects add-iam-policy-binding ชื่อ-google-cloud-project \
+>   --member="serviceAccount:อีเมล-service-account" \
+>   --role="roles/serviceusage.serviceUsageConsumer"
+> ```
+
+ดูอีเมล service account ที่ระบบใช้อยู่จริงได้จาก `GET /api/status` (ช่อง `gee.account`)
+
 ---
 
 ## ล็อกอินด้วยบัญชี Google (Gmail)
@@ -366,7 +397,7 @@ build `client/` ให้ในตัว แล้ว Express ใน `server/ind
 
 ```powershell
 gcloud auth login
-gcloud config set project iwsamsat-analysis-system
+gcloud config set project iwasamsat
 ```
 
 ### 1. เปิด API ที่ต้องใช้
@@ -414,6 +445,14 @@ gcloud storage buckets add-iam-policy-binding gs://iwasamsat-data `
 
 gcloud secrets add-iam-policy-binding iwasamsat-gee-key `
   --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor"
+
+# ต้องมีตัวนี้ด้วย ไม่งั้นชั้นแผนที่ NDVI จะสร้างไม่ได้ (ดูหัวข้อ 5 ของส่วน Earth Engine)
+gcloud projects add-iam-policy-binding iwasamsat `
+  --member="serviceAccount:$SA" --role="roles/earthengine.writer"
+
+# SA ตัวนี้เป็นของโปรเจกต์ iwsamsat-analysis-system จึงต้องมีสิทธิ์เรียกใช้ API ของ iwasamsat ด้วย
+gcloud projects add-iam-policy-binding iwasamsat `
+  --member="serviceAccount:$SA" --role="roles/serviceusage.serviceUsageConsumer"
 ```
 
 ### 5. Deploy
@@ -424,7 +463,7 @@ gcloud run deploy iwasamsat `
   --region us-central1 `
   --service-account "iwasamsat@iwsamsat-analysis-system.iam.gserviceaccount.com" `
   --set-secrets "GEE_SERVICE_ACCOUNT_JSON=iwasamsat-gee-key:latest" `
-  --set-env-vars "GEE_PROJECT=iwsamsat-analysis-system,GCS_BUCKET=iwasamsat-data,ALLOW_DEMO=false,GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com" `
+  --set-env-vars "GEE_PROJECT=iwasamsat,GCS_BUCKET=iwasamsat-data,ALLOW_DEMO=false,GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com" `
   --memory 1Gi `
   --timeout 300 `
   --max-instances 1 `

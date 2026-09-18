@@ -164,11 +164,16 @@ router.post('/tiles', async (req, res) => {
     const tiles = await cached(key, () => getNdviTiles({ geometry, start, end, collection, maxCloud, layer }))
     res.json(tiles)
   } catch (err) {
-    res.status(502).json({
-      error: 'สร้างชั้นแผนที่จาก Earth Engine ไม่สำเร็จ',
-      detail: String(err?.message || err),
-      hint: geeStatus().ready ? undefined : 'ยังไม่ได้ตั้งค่า Earth Engine — ดูขั้นตอนใน README',
-    })
+    const detail = String(err?.message || err)
+    const status = geeStatus()
+    // แยกให้ชัดว่าเป็น "ยังไม่ได้ตั้งค่า" หรือ "ตั้งค่าแล้วแต่สิทธิ์ไม่พอ" — วิธีแก้คนละทาง
+    const hint = !status.ready
+      ? 'ยังไม่ได้ตั้งค่า Earth Engine — ดูขั้นตอนใน README'
+      : /ไม่มีสิทธิ์/.test(detail)
+        ? 'เชื่อมต่อ Earth Engine ได้แล้ว แต่ service account ยังไม่มีสิทธิ์สร้างชั้นแผนที่ (ดู detail)'
+        : undefined
+    console.error('tiles failed:', detail)
+    res.status(502).json({ error: 'สร้างชั้นแผนที่จาก Earth Engine ไม่สำเร็จ', detail, hint })
   }
 })
 

@@ -8,7 +8,7 @@ import fs from 'node:fs'
 import ee from '@google/earthengine'
 import { GEE_KEY_PATH, GEE_KEY_JSON, GEE_PROJECT, ALLOW_DEMO } from '../config.js'
 
-let state = { ready: false, initializing: null, error: null, project: null }
+let state = { ready: false, initializing: null, error: null, project: null, account: null }
 
 function loadKey() {
   if (GEE_KEY_JSON) return JSON.parse(GEE_KEY_JSON)
@@ -39,6 +39,7 @@ export function initEarthEngine() {
     }
 
     const project = GEE_PROJECT || key.project_id || null
+    state.account = key.client_email || null
 
     const fail = (err) => {
       state = { ...state, ready: false, error: String(err?.message || err), initializing: null }
@@ -52,7 +53,7 @@ export function initEarthEngine() {
           null,
           null,
           () => {
-            state = { ready: true, initializing: null, error: null, project }
+            state = { ready: true, initializing: null, error: null, project, account: state.account }
             resolve(state)
           },
           fail,
@@ -76,6 +77,7 @@ export function geeStatus() {
   return {
     ready: state.ready,
     project: state.project,
+    account: state.account,
     error: state.error,
     demoAllowed: ALLOW_DEMO,
     mode: state.ready ? 'earth-engine' : ALLOW_DEMO ? 'demo' : 'unavailable',
@@ -84,13 +86,37 @@ export function geeStatus() {
 
 function evaluate(eeObject) {
   return new Promise((resolve, reject) => {
-    eeObject.evaluate((result, error) => (error ? reject(new Error(error)) : resolve(result)))
+    eeObject.evaluate((result, error) => (error ? reject(explainEeError(error)) : resolve(result)))
   })
+}
+
+/**
+ * Earth Engine แยกสิทธิ์ "คำนวณ" ออกจาก "สร้างชั้นแผนที่"
+ *
+ * roles/earthengine.viewer ให้แค่ earthengine.computations.create — กราฟ NDVI จึงขึ้นได้ปกติ
+ * แต่ tile แผนที่ต้องใช้ earthengine.maps.create ซึ่งมีเฉพาะใน roles/earthengine.writer ขึ้นไป
+ * อาการคือ "กราฟมา แต่ชั้นแผนที่พัง" ซึ่งดูเผิน ๆ เหมือนโค้ดวาดแผนที่มีบั๊ก
+ */
+function explainEeError(err) {
+  const msg = String(err?.message || err)
+  const denied = /Permission '(earthengine\.[a-z]+\.[a-zA-Z]+)' denied/.exec(msg)
+  if (!denied) return new Error(msg)
+
+  const sa = state.account || 'SERVICE_ACCOUNT_EMAIL'
+  const project = state.project || 'GEE_PROJECT'
+  return new Error(
+    [
+      `service account ยังไม่มีสิทธิ์ ${denied[1]} บนโปรเจกต์ ${project}`,
+      'แก้โดยให้สิทธิ์ระดับ writer แล้วรีสตาร์ทเซิร์ฟเวอร์:',
+      `  gcloud projects add-iam-policy-binding ${project} \\`,
+      `    --member="serviceAccount:${sa}" --role="roles/earthengine.writer"`,
+    ].join('\n')
+  )
 }
 
 function getMapAsync(image, visParams) {
   return new Promise((resolve, reject) => {
-    image.getMap(visParams, (map, error) => (error ? reject(new Error(error)) : resolve(map)))
+    image.getMap(visParams, (map, error) => (error ? reject(explainEeError(error)) : resolve(map)))
   })
 }
 
