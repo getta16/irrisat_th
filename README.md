@@ -458,7 +458,7 @@ gcloud projects add-iam-policy-binding iwasamsat `
 ### 5. Deploy
 
 ```powershell
-gcloud run deploy iwasamsat `
+gcloud run deploy irrisat-thai `
   --source . `
   --region us-central1 `
   --service-account "iwasamsat@iwsamsat-analysis-system.iam.gserviceaccount.com" `
@@ -484,18 +484,18 @@ gcloud run deploy iwasamsat `
 
 ### 6. เปิด URL ที่ได้ให้ล็อกอินได้
 
-เสร็จแล้ว gcloud จะพิมพ์ URL ออกมา เช่น `https://iwasamsat-xxxxxxxx-uc.a.run.app`
+เสร็จแล้ว gcloud จะพิมพ์ URL ออกมา เช่น `https://irrisat-thai-xxxxxxxx-uc.a.run.app`
 เอา URL นั้นไปใส่ใน **Google Cloud Console → APIs & Services → Credentials →
 OAuth client → Authorized JavaScript origins** ไม่อย่างนั้นปุ่มลงชื่อเข้าใช้จะไม่ทำงาน
 
 ลองเช็คว่าเชื่อม Earth Engine ได้จริง:
 
 ```powershell
-curl.exe https://iwasamsat-xxxxxxxx-uc.a.run.app/api/status
+curl.exe https://irrisat-thai-xxxxxxxx-uc.a.run.app/api/status
 ```
 
 ควรได้ `"mode":"earth-engine"` ถ้าได้ `"mode":"unavailable"` ให้ดูล็อกด้วย
-`gcloud run services logs read iwasamsat --region us-central1`
+`gcloud run services logs read irrisat-thai --region us-central1`
 
 ### หน้า homepage และนโยบายความเป็นส่วนตัวบน GitHub Pages
 

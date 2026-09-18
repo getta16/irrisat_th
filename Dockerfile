@@ -1,6 +1,6 @@
 # อิมเมจเดียวจบ: build หน้าเว็บแล้วให้ Express เสิร์ฟทั้งหน้าเว็บและ API
 #
-#   gcloud run deploy iwasamsat --source . ...
+#   gcloud run deploy irrisat-thai --source . ...
 #
 # เดิมแยกเป็นสองที่ (API บน Cloud Run, หน้าเว็บบน GitHub Pages) ซึ่งต้องคอยตั้ง
 # VITE_API_BASE, เปิด CORS และเพิ่ม origin ใน OAuth ให้ครบทั้งสองโดเมน
