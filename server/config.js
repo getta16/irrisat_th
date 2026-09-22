@@ -56,3 +56,27 @@ export const AUTH_ENABLED = Boolean(GOOGLE_CLIENT_ID)
 // แต่ละคนเห็นเฉพาะแปลงของตัวเอง แต่แปลงที่บันทึกไว้ก่อนเปิดใช้การล็อกอินยังไม่มีเจ้าของ
 // ตั้งอีเมลไว้ตรงนี้เพื่อโอนแปลงเก่าทั้งหมดให้บัญชีนั้นครั้งเดียวตอนเริ่มระบบ
 export const LEGACY_OWNER_EMAIL = (process.env.LEGACY_OWNER_EMAIL || '').trim().toLowerCase()
+
+// ── API ภายนอก (/api/v1) ────────────────────────────────────────────────
+// ให้ script / QGIS / Power BI ดึงข้อมูลแปลง + NDVI + Kc ได้โดยไม่ต้องล็อกอินผ่านเบราว์เซอร์
+// แต่ละคีย์ผูกกับอีเมลเจ้าของ และเห็นได้เฉพาะแปลงของอีเมลนั้น คั่นหลายคีย์ด้วยจุลภาค
+//   API_KEYS=<คีย์ยาวอย่างน้อย 24 ตัว>:gettiraput@gmail.com,<คีย์อีกชุด>:malee@gmail.com
+// เว้นว่าง = ปิด /api/v1 ทั้งหมด
+export const API_KEYS = new Map(
+  (process.env.API_KEYS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((pair) => {
+      const i = pair.lastIndexOf(':')
+      return i > 0 ? [pair.slice(0, i).trim(), pair.slice(i + 1).trim().toLowerCase()] : null
+    })
+    // คีย์สั้นเดาง่าย — ทิ้งไปเลยดีกว่าเปิดช่องโหว่เงียบ ๆ
+    .filter((kv) => kv && kv[0].length >= 24 && kv[1].includes('@'))
+)
+
+// จำนวนคำขอต่อนาทีต่อคีย์
+export const API_RATE_PER_MIN = Number(process.env.API_RATE_PER_MIN || 60)
+
+// ช่วงวันที่ยาวที่สุดที่ขอได้ต่อครั้ง — ยาวกว่านี้ Earth Engine มักหมดเวลา
+export const API_MAX_RANGE_DAYS = Number(process.env.API_MAX_RANGE_DAYS || 730)

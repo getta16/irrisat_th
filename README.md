@@ -541,9 +541,14 @@ new_irresat/
 │   │   ├── auth.js        GET  /api/auth/config — บอกหน้าเว็บว่าต้องล็อกอินไหม
 │   │   ├── import.js      POST /api/import      — รับไฟล์ แปลงเป็น GeoJSON
 │   │   ├── fields.js      CRUD /api/fields      — จัดการแปลงที่บันทึกไว้
-│   │   └── analysis.js    POST /api/analysis    — ประมวลผลและสร้าง tile แผนที่
+│   │   ├── analysis.js    POST /api/analysis    — ประมวลผลและสร้าง tile แผนที่
+│   │   └── publicApi.js   GET  /api/v1/*        — API ภายนอก (API key) NDVI + Kc
 │   ├── services/
 │   │   ├── auth.js        ตรวจ Google ID token + รายชื่ออีเมลที่อนุญาต
+│   │   ├── apiKey.js      ตรวจ X-API-Key + จำกัดจำนวนคำขอต่อนาที
+│   │   ├── ndvi.js        NDVI ที่กรองเมฆแล้ว + แคช (ใช้ร่วมกันทั้งหน้าเว็บและ /api/v1)
+│   │   ├── cache.js       แคชในหน่วยความจำ 30 นาที
+│   │   ├── range.js       ตรวจและเติมช่วงวันที่
 │   │   ├── parseGeo.js    อ่าน shapefile / kml / kmz / geojson / gpx + แปลงระบบพิกัด
 │   │   ├── normalize.js   ทำความสะอาดรูปทรง คำนวณพื้นที่เป็นไร่/เฮกตาร์
 │   │   ├── gee.js         คุยกับ Google Earth Engine (NDVI + tile แผนที่)
@@ -592,6 +597,66 @@ new_irresat/
 
 ผลลัพธ์จาก Earth Engine และ NASA POWER ถูกแคชไว้ในหน่วยความจำ 30 นาที
 เพื่อไม่ให้เรียกซ้ำถี่เกินไปและกินโควตา
+
+### API ภายนอก `/api/v1` — ดึง NDVI และ Kc ไปใช้ในระบบอื่น
+
+สำหรับ script / QGIS / Power BI ที่กดล็อกอิน Google ไม่ได้ ใช้ **API key** แทน
+แต่ละคีย์ผูกกับอีเมลเดียว และ**เห็นเฉพาะแปลงของอีเมลนั้น** อ่านได้อย่างเดียว แก้/ลบแปลงไม่ได้
+
+**ออกคีย์** — สุ่มคีย์ยาว ๆ แล้วใส่ใน `.env` (บน Cloud Run ใส่เป็น secret) แล้วรีสตาร์ต
+
+```powershell
+node -e "console.log('irrisat_' + require('crypto').randomBytes(24).toString('base64url'))"
+```
+
+```
+API_KEYS=irrisat_xxxxxxxxxxxxxxxxxxxxxxxxxxxx:gettiraput@gmail.com
+```
+
+คีย์ต้องยาวอย่างน้อย 24 ตัวอักษร (สั้นกว่านั้นระบบไม่รับ) หลายคีย์คั่นด้วยจุลภาค
+ยกเลิกคีย์ = ลบออกจาก `API_KEYS` แล้วรีสตาร์ต
+
+| Path | คืนอะไร |
+| --- | --- |
+| `GET /api/v1/areas` | รายการแปลง: id, ชื่อ, พื้นที่ (ม.² / ไร่ / เฮกตาร์), จุดศูนย์กลาง, พืช, ดิน — `?geometry=1` แนบรูปทรง |
+| `GET /api/v1/areas.geojson` | แปลงทั้งหมดเป็น GeoJSON FeatureCollection (เปิดใน QGIS ได้ตรง ๆ) |
+| `GET /api/v1/areas/:id` | แปลงเดียว พร้อมรูปทรง |
+| `GET /api/v1/areas/:id/ndvi` | NDVI + Kc **เฉพาะวันที่มีภาพดาวเทียมจริง** พร้อม `coverage` |
+| `GET /api/v1/areas/:id/timeseries` | NDVI + Kc **รายวัน** (เติมค่าระหว่างภาพ) — `?weather=1` เพิ่ม ET₀ / ETc / ฝน |
+| `GET /api/v1/ndvi/latest` | ภาพล่าสุดของทุกแปลง — `?days=60` หาย้อนหลังกี่วัน (สูงสุด 180) |
+
+พารามิเตอร์ร่วม: `start`, `end` (`YYYY-MM-DD`, ค่าเริ่มต้น 180 วันย้อนหลัง, ขอได้ไม่เกิน 730 วัน),
+`collection` (`S2` หรือ `LANDSAT`, ค่าเริ่มต้นตามที่ตั้งไว้ในแปลง), `maxCloud` (0-100),
+`format=csv` (เส้นทาง `ndvi`, `timeseries`, `ndvi/latest`)
+
+```powershell
+$h = @{ 'X-API-Key' = 'irrisat_xxxxxxxx' }
+$base = 'https://irrisat-thai-xxxxxxxx-uc.a.run.app/api/v1'
+Invoke-RestMethod "$base/areas" -Headers $h
+Invoke-RestMethod "$base/areas/<id>/ndvi?start=2026-06-01&end=2026-09-15" -Headers $h
+Invoke-WebRequest "$base/areas/<id>/timeseries?weather=1&format=csv" -Headers $h -OutFile ts.csv
+```
+
+**อ่านค่าให้ถูก**
+
+- `kc` คำนวณจาก `Kc = 1.37 × NDVI − 0.086` จำกัดช่วง 0-1.25 (สมการเดียวกับหน้าเว็บ — บอกไว้ใน `meta.kcFormula` ด้วย)
+- `/timeseries`: `observed: true` = วันที่มีภาพจริง, `extrapolated: true` = ก่อนภาพแรก/หลังภาพสุดท้าย
+  ใช้ค่าภาพที่ใกล้ที่สุดค้างไว้ ความเชื่อมั่นต่ำกว่า
+- `coverage` = สัดส่วนแปลงที่มองเห็น **เทียบกับวันที่เห็นชัดที่สุดในช่วงที่ขอ** ภาพเดียวกันจึงได้ค่าต่างกันได้
+  เมื่อเปลี่ยนช่วงวันที่ ภาพที่ต่ำกว่า 0.4 ถูกตัดทิ้งไปแล้ว (ถ้าทุกภาพต่ำกว่านั้นจะคืนทั้งหมด)
+- **ไม่มีข้อมูลจำลอง** — ต่างจากหน้าเว็บ ถ้า Earth Engine ใช้ไม่ได้จะตอบ `503` / `502` เสมอ
+  แม้ตั้ง `ALLOW_DEMO=true` ไว้ เพราะผู้ใช้ API มองไม่เห็นป้าย "ข้อมูลจำลอง"
+
+**ข้อจำกัด**
+
+- จำกัด 60 คำขอ/นาที/คีย์ (`API_RATE_PER_MIN`) — เกินตอบ `429` พร้อม `Retry-After`
+- ไม่เปิด CORS — เรียกจากฝั่งเซิร์ฟเวอร์ / script เท่านั้น ห้ามฝังคีย์ในหน้าเว็บ
+- ครั้งแรกของแต่ละแปลงใช้เวลา 3-15 วินาที (แปลงใหญ่นานกว่า) ครั้งถัดไปภายใน 30 นาทีได้จากแคชทันที
+  `/ndvi/latest` กับ 17 แปลงใช้ราว 45 วินาทีตอนแคชว่าง
+- แคชและตัวนับคำขออยู่ในหน่วยความจำ — รีสตาร์ตแล้วหาย และถ้า Cloud Run ขยายเป็นหลาย instance
+  แต่ละตัวนับแยกกัน
+
+ทดสอบกับเซิร์ฟเวอร์ที่เปิดอยู่: `npm run test:api`
 
 ---
 

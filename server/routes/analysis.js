@@ -1,41 +1,15 @@
 import { Router } from 'express'
 import { getField } from '../services/store.js'
 import { ownerOf } from '../services/auth.js'
-import { getNdviSeries, getNdviTiles, geeStatus, initEarthEngine, COLLECTIONS } from '../services/gee.js'
+import { getNdviTiles, geeStatus, COLLECTIONS } from '../services/gee.js'
+import { getUsableNdvi } from '../services/ndvi.js'
+import { cached, geomKey } from '../services/cache.js'
+import { resolveRange } from '../services/range.js'
 import { getDailyWeather } from '../services/weather.js'
 import { runWaterBalance, demoNdviSeries, SOIL_TYPES, CROPS } from '../services/irrigation.js'
 import { ALLOW_DEMO } from '../config.js'
 
 const router = Router()
-
-// แคชในหน่วยความจำ — GEE กับ NASA POWER ตอบช้าและมีโควตา จึงไม่ควรเรียกซ้ำถี่ ๆ
-const cache = new Map()
-const TTL_MS = 30 * 60 * 1000
-
-function cached(key, producer) {
-  const hit = cache.get(key)
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.value
-  const value = producer().catch((err) => {
-    cache.delete(key)
-    throw err
-  })
-  cache.set(key, { at: Date.now(), value })
-  if (cache.size > 200) cache.delete(cache.keys().next().value)
-  return value
-}
-
-const iso = (d) => d.toISOString().slice(0, 10)
-const shiftDays = (n) => iso(new Date(Date.now() + n * 86400000))
-
-/** NASA POWER มีข้อมูลช้ากว่าปัจจุบันไม่กี่วัน จึงต้องถอยวันสิ้นสุดให้ */
-const WEATHER_LAG_DAYS = 3
-
-function resolveRange(query) {
-  const end = query.end || shiftDays(-WEATHER_LAG_DAYS)
-  const start = query.start || iso(new Date(Date.parse(`${end}T00:00:00Z`) - 180 * 86400000))
-  if (Date.parse(start) > Date.parse(end)) throw new Error('วันเริ่มต้นต้องมาก่อนวันสิ้นสุด')
-  return { start, end }
-}
 
 router.get('/options', (_req, res) => {
   res.json({
@@ -75,8 +49,6 @@ router.post('/', async (req, res) => {
     const collection = settings.collection || body.collection || 'S2'
     const maxCloud = Number(body.maxCloud ?? settings.maxCloud ?? 60)
 
-    const geomKey = JSON.stringify(geometry).slice(0, 400)
-
     // ── NDVI ────────────────────────────────────────────────────────
     let ndviSeries = []
     let ndviSource = 'earth-engine'
@@ -84,13 +56,7 @@ router.post('/', async (req, res) => {
     let ndviError = null
 
     try {
-      await initEarthEngine()
-      ndviSeries = await cached(`ndvi|${collection}|${start}|${end}|${maxCloud}|${geomKey}`, () =>
-        getNdviSeries({ geometry, start, end, collection, maxCloud })
-      )
-      // ภาพที่มองเห็นแปลงน้อยกว่า 40% ถือว่าเชื่อถือไม่ได้ (เมฆบังเกือบหมด)
-      const usable = ndviSeries.filter((d) => d.coverage >= 0.4)
-      if (usable.length) ndviSeries = usable
+      ndviSeries = await getUsableNdvi({ geometry, start, end, collection, maxCloud })
     } catch (err) {
       if (!ALLOW_DEMO) {
         return res.status(502).json({ error: 'ดึงข้อมูล NDVI จาก Earth Engine ไม่สำเร็จ', detail: err.message })
@@ -160,7 +126,7 @@ router.post('/tiles', async (req, res) => {
     const collection = body.collection || 'S2'
     const maxCloud = Number(body.maxCloud ?? 60)
 
-    const key = `tiles|${layer}|${collection}|${start}|${end}|${maxCloud}|${JSON.stringify(geometry).slice(0, 400)}`
+    const key = `tiles|${layer}|${collection}|${start}|${end}|${maxCloud}|${geomKey(geometry)}`
     const tiles = await cached(key, () => getNdviTiles({ geometry, start, end, collection, maxCloud, layer }))
     res.json(tiles)
   } catch (err) {

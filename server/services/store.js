@@ -137,8 +137,10 @@ const readAll = () => cache
  */
 function owns(field, owner) {
   if (!owner) return true // โหมดไม่บังคับล็อกอิน — เห็นทุกแปลง
-  if (field.ownerId) return field.ownerId === owner.id
-  if (field.ownerEmail) return field.ownerEmail === owner.email
+  if (owner.id && field.ownerId === owner.id) return true
+  // API key รู้แค่อีเมล (owner.id = null) — ถ้าเช็ค ownerId ก่อนอย่างเดียว แปลงจะหายจาก API
+  // ทันทีที่เจ้าของล็อกอินแล้วแก้แปลง เพราะ updateField ประทับ ownerId ลงไปตอนนั้น
+  if (owner.email && field.ownerEmail?.toLowerCase() === owner.email.toLowerCase()) return true
   return false // ไม่มีเจ้าของ และยังไม่ได้โอนให้ใคร
 }
 

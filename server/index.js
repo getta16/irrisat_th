@@ -13,6 +13,7 @@ import {
   ALLOWED_EMAILS,
   ALLOWED_DOMAINS,
   LEGACY_OWNER_EMAIL,
+  API_KEYS,
 } from './config.js'
 import { initEarthEngine, geeStatus } from './services/gee.js'
 import { initStore } from './services/store.js'
@@ -21,11 +22,16 @@ import authRouter from './routes/auth.js'
 import importRouter from './routes/import.js'
 import fieldsRouter from './routes/fields.js'
 import analysisRouter from './routes/analysis.js'
+import publicApiRouter from './routes/publicApi.js'
+import { requireApiKey } from './services/apiKey.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
-app.use(cors())
+// /api/v1 ไม่เปิด CORS — คีย์ต้องอยู่ฝั่งเซิร์ฟเวอร์เท่านั้น ถ้าเปิดไว้ หน้าเว็บที่ไหนก็ได้
+// ที่ได้คีย์ไปจะเรียกตรงจากเบราว์เซอร์ของคนอื่นได้ (header X-API-Key ทำให้ preflight ตก)
+const corsAll = cors()
+app.use((req, res, next) => (req.path.startsWith('/api/v1/') ? next() : corsAll(req, res, next)))
 app.use(express.json({ limit: '25mb' }))
 
 app.get('/api/status', (_req, res) => {
@@ -34,6 +40,9 @@ app.get('/api/status', (_req, res) => {
 
 // ต้องอยู่ก่อน requireAuth เสมอ — ตอนอยู่หน้าล็อกอินยังไม่มี token จะเรียกเส้นทางนี้
 app.use('/api/auth', authRouter)
+
+// API ภายนอกใช้ API key แทนการล็อกอิน Google — จึงต้องอยู่ก่อน requireAuth เช่นกัน
+app.use('/api/v1', requireApiKey, publicApiRouter)
 
 // ข้อมูลแปลงและผลวิเคราะห์ต้องลงชื่อเข้าใช้ก่อน (เมื่อตั้ง GOOGLE_CLIENT_ID ไว้)
 app.use('/api/import', requireAuth, importRouter)
@@ -80,6 +89,11 @@ app.listen(PORT, () => {
     AUTH_ENABLED
       ? `  ล็อกอิน Google  →  เปิดใช้งาน · แยกข้อมูลรายผู้ใช้ (อนุญาต: ${allowed})`
       : '  ล็อกอิน Google  →  ปิดอยู่ — เห็นแปลงทั้งหมดรวมกัน (ตั้ง GOOGLE_CLIENT_ID ใน .env เพื่อเปิด)'
+  )
+  console.log(
+    API_KEYS.size
+      ? `  API ภายนอก      →  /api/v1 เปิดใช้งาน (${API_KEYS.size} คีย์: ${[...new Set(API_KEYS.values())].join(', ')})`
+      : '  API ภายนอก      →  ปิดอยู่ (ตั้ง API_KEYS ใน .env เพื่อเปิด)'
   )
   initEarthEngine().then(() => {
     const s = geeStatus()
