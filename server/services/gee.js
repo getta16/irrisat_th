@@ -279,9 +279,15 @@ export async function getNdviSeries({ geometry, start, end, collection = 'S2', m
     })
   })
 
-  const raw = await evaluate(
-    ee.FeatureCollection(features).filter(ee.Filter.notNull(['ndvi'])).sort('date')
-  )
+  let raw
+  try {
+    raw = await evaluate(ee.FeatureCollection(features).filter(ee.Filter.notNull(['ndvi'])).sort('date'))
+  } catch (err) {
+    // ช่วงที่ไม่มีภาพผ่านเกณฑ์เมฆเลย col.first() เป็น null แล้ว EE ล้มทั้งคำขอแทนที่จะคืนชุดว่าง
+    // (ลองกันด้วย ee.Algorithms.If แล้ว แต่ทำให้ช่วงที่มีภาพพังด้วย internal error)
+    if (/Image\.projection: Parameter 'image' is required/.test(err.message)) return []
+    throw err
+  }
 
   const byDate = new Map()
   for (const f of raw?.features || []) {

@@ -658,6 +658,11 @@ Invoke-WebRequest "$base/areas/<id>/timeseries?weather=1&format=csv" -Headers $h
 
 ทดสอบกับเซิร์ฟเวอร์ที่เปิดอยู่: `npm run test:api`
 
+**Postman** — Import ไฟล์ `postman/IRRISAT-THAI-API-v1.postman_collection.json`
+แล้วใส่คีย์ในตัวแปร `apiKey` ของ collection (ไฟล์ไม่มีคีย์ติดมา) กด Send ที่ **01 รายการแปลง** ก่อน
+ระบบจะเก็บ id ลง `areaId` ให้คำขออื่นใช้ต่อ — ตั้งตัวแปร `areaName` เพื่อเลือกแปลงตามชื่อ
+รันทั้งชุดจาก command line ได้ด้วย `npx newman run postman/IRRISAT-THAI-API-v1.postman_collection.json --env-var apiKey=<คีย์>`
+
 ---
 
 ## แหล่งข้อมูล

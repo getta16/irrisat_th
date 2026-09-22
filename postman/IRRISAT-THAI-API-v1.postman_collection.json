@@ -1,0 +1,460 @@
+{
+  "info": {
+    "name": "IRRISAT-THAI API v1",
+    "description": "API อ่านอย่างเดียวของ IRRISAT-THAI — ข้อมูลแปลง, NDVI และ Kc\n\n**เริ่มใช้:**\n1. คลิกชื่อ collection → แท็บ **Variables** → ใส่คีย์ในช่อง `apiKey` (ใช้เฉพาะส่วนก่อน `:`) → Save\n2. เปิด **01 รายการแปลง** → Send — ระบบจะเก็บ id ของแปลงลงตัวแปร `areaId` ให้เอง\n3. คำขออื่นใช้ `{{areaId}}` ต่อได้เลย\n\nคัดลอกคีย์ลง clipboard (PowerShell):\n```\n((gcloud secrets versions access latest --secret irrisat-api-keys --project iwasamsat) -split ':')[0] | Set-Clipboard\n```\n\n- Kc = 1.37 × NDVI − 0.086 จำกัดช่วง 0-1.25\n- จำกัด 60 คำขอ/นาที/คีย์ · คำขอแรกหลังพักนานรอ 10-30 วินาที\n- `/ndvi/latest` ใช้ ~75 วินาทีตอนแคชว่าง — ตั้ง Settings → General → Request timeout เป็น 300000\n- ทดสอบกับเครื่องตัวเอง: เปลี่ยน `base` เป็น `http://localhost:5174/api/v1`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// เตือนก่อนส่ง ถ้ายังไม่ได้ใส่คีย์ หรือเผลอวางอีเมลติดมาด้วย",
+          "const key = pm.variables.get('apiKey') || ''; // อ่านได้ทั้งจาก collection และ environment",
+          "if (!key) console.warn('ยังไม่ได้ใส่ apiKey ในแท็บ Variables ของ collection');",
+          "else if (key.includes(':')) console.warn('apiKey มี \":\" ติดมา — ใช้เฉพาะส่วนก่อน \":\" (ตัดอีเมลทิ้ง)');",
+          "const needsArea = pm.request.url.toString().includes('{{areaId}}');",
+          "if (needsArea && !pm.variables.get('areaId')) console.warn('areaId ว่าง — Send \"01 รายการแปลง\" ก่อน');"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "https://irrisat-thai-29589356609.us-central1.run.app/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "secret"
+    },
+    {
+      "key": "areaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "areaName",
+      "value": "",
+      "type": "string",
+      "description": "ใส่ชื่อแปลงที่ต้องการ (เว้นว่าง = แปลงแรก) แล้ว Send \"01 รายการแปลง\" ใหม่"
+    }
+  ],
+  "item": [
+    {
+      "name": "แปลง",
+      "item": [
+        {
+          "name": "01 รายการแปลง",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ตอบ 200', () => pm.response.to.have.status(200));",
+                  "const areas = pm.response.json().areas || [];",
+                  "const want = pm.variables.get('areaName');",
+                  "const pick = (want && areas.find(a => a.name === want)) || areas[0];",
+                  "if (pick) {",
+                  "  pm.collectionVariables.set('areaId', pick.id);",
+                  "  console.log('areaId =', pick.id, '(' + pick.name + ')');",
+                  "}",
+                  "if (want && pick && pick.name !== want) console.warn('ไม่พบแปลงชื่อ \"' + want + '\" — ใช้แปลงแรกแทน');",
+                  "console.log('แปลงทั้งหมด:', areas.map(a => a.name).join(', '));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/areas",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "areas"
+              ],
+              "query": [
+                {
+                  "key": "geometry",
+                  "value": "1",
+                  "description": "แนบรูปทรง (GeoJSON geometry) ของแต่ละแปลง",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "รายการแปลงทั้งหมดของเจ้าของคีย์\n\nหลัง Send จะเก็บ id ลง `areaId` ให้ — ตั้งตัวแปร `areaName` เพื่อเลือกแปลงตามชื่อ"
+          },
+          "response": []
+        },
+        {
+          "name": "02 แปลงเดียว (พร้อมรูปทรง)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ตอบ 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/areas/{{areaId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "areas",
+                "{{areaId}}"
+              ]
+            },
+            "description": "ข้อมูลแปลงตาม `areaId` พร้อม geometry"
+          },
+          "response": []
+        },
+        {
+          "name": "03 แปลงทั้งหมดเป็น GeoJSON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ตอบ 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/areas.geojson",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "areas.geojson"
+              ]
+            },
+            "description": "FeatureCollection ของทุกแปลง — ใช้ **Send and Download** บันทึกเป็นไฟล์ `.geojson` แล้วลากเข้า QGIS"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "NDVI + Kc",
+      "item": [
+        {
+          "name": "04 NDVI + Kc ตามวันที่มีภาพ",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ตอบ 200', () => pm.response.to.have.status(200));",
+                  "const rows = pm.response.json().observations || pm.response.json().days || [];",
+                  "pm.test('Kc = 1.37 × NDVI − 0.086 (จำกัด 0-1.25)', () => {",
+                  "  rows.filter(r => r.ndvi !== null).forEach(r => {",
+                  "    const kc = Math.min(1.25, Math.max(0, 1.37 * r.ndvi - 0.086));",
+                  "    pm.expect(Math.abs(r.kc - kc)).to.be.below(0.002);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/areas/{{areaId}}/ndvi?start=2026-06-01&end=2026-09-15",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "areas",
+                "{{areaId}}",
+                "ndvi"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2026-06-01",
+                  "description": "วันเริ่ม YYYY-MM-DD (ไม่ใส่ = 180 วันย้อนหลัง)"
+                },
+                {
+                  "key": "end",
+                  "value": "2026-09-15",
+                  "description": "วันสิ้นสุด YYYY-MM-DD (ห่างจาก start ได้ไม่เกิน 730 วัน)"
+                },
+                {
+                  "key": "collection",
+                  "value": "S2",
+                  "description": "S2 (10 ม.) หรือ LANDSAT (30 ม.)",
+                  "disabled": true
+                },
+                {
+                  "key": "maxCloud",
+                  "value": "60",
+                  "description": "เพดานเมฆที่ยอมรับ 0-100",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "ค่าเฉพาะวันที่มีภาพดาวเทียมจริง ไม่มีการเติมค่า — `coverage` = สัดส่วนแปลงที่มองเห็น"
+          },
+          "response": []
+        },
+        {
+          "name": "05 NDVI + Kc รายวัน",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ตอบ 200', () => pm.response.to.have.status(200));",
+                  "const rows = pm.response.json().observations || pm.response.json().days || [];",
+                  "pm.test('Kc = 1.37 × NDVI − 0.086 (จำกัด 0-1.25)', () => {",
+                  "  rows.filter(r => r.ndvi !== null).forEach(r => {",
+                  "    const kc = Math.min(1.25, Math.max(0, 1.37 * r.ndvi - 0.086));",
+                  "    pm.expect(Math.abs(r.kc - kc)).to.be.below(0.002);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/areas/{{areaId}}/timeseries?start=2026-08-01&end=2026-09-15&weather=1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "areas",
+                "{{areaId}}",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2026-08-01",
+                  "description": "วันเริ่ม YYYY-MM-DD"
+                },
+                {
+                  "key": "end",
+                  "value": "2026-09-15",
+                  "description": "วันสิ้นสุด YYYY-MM-DD"
+                },
+                {
+                  "key": "weather",
+                  "value": "1",
+                  "description": "เพิ่ม ET₀ / ETc / ฝน จาก NASA POWER"
+                },
+                {
+                  "key": "collection",
+                  "value": "S2",
+                  "description": "S2 หรือ LANDSAT",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "ค่ารายวันทุกวัน — วันที่ไม่มีภาพประมาณเชิงเส้นระหว่างภาพ\n\n- `observed: true` = วันที่มีภาพจริง\n- `extrapolated: true` = ก่อนภาพแรก/หลังภาพสุดท้าย (ความเชื่อมั่นต่ำ)"
+          },
+          "response": []
+        },
+        {
+          "name": "06 ค่าล่าสุดทุกแปลง",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ตอบ 200', () => pm.response.to.have.status(200));",
+                  "const bad = (pm.response.json().areas || []).filter(a => a.error);",
+                  "pm.test('ไม่มีแปลงที่ดึงไม่สำเร็จ', () => pm.expect(bad.map(a => a.name)).to.eql([]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/ndvi/latest?days=60",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "ndvi",
+                "latest"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "60",
+                  "description": "หาภาพย้อนหลังกี่วัน (1-180)"
+                }
+              ]
+            },
+            "description": "ภาพล่าสุดของทุกแปลง — ตอนแคชว่างใช้ราว 75 วินาที\n\nตั้ง Settings → General → Request timeout เป็น 300000 ก่อน"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ดาวน์โหลด CSV (ใช้ Send and Download)",
+      "item": [
+        {
+          "name": "07 CSV — NDVI + Kc ตามภาพ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/areas/{{areaId}}/ndvi?start=2026-06-01&end=2026-09-15&format=csv",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "areas",
+                "{{areaId}}",
+                "ndvi"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2026-06-01",
+                  "description": ""
+                },
+                {
+                  "key": "end",
+                  "value": "2026-09-15",
+                  "description": ""
+                },
+                {
+                  "key": "format",
+                  "value": "csv",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "กดลูกศรข้างปุ่ม Send → **Send and Download** เพื่อบันทึกไฟล์ (เปิดใน Excel ได้ ชื่อไทยไม่เพี้ยน)"
+          },
+          "response": []
+        },
+        {
+          "name": "08 CSV — รายวันพร้อมข้อมูลอากาศ",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/areas/{{areaId}}/timeseries?start=2026-08-01&end=2026-09-15&weather=1&format=csv",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "areas",
+                "{{areaId}}",
+                "timeseries"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2026-08-01",
+                  "description": ""
+                },
+                {
+                  "key": "end",
+                  "value": "2026-09-15",
+                  "description": ""
+                },
+                {
+                  "key": "weather",
+                  "value": "1",
+                  "description": ""
+                },
+                {
+                  "key": "format",
+                  "value": "csv",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "กดลูกศรข้างปุ่ม Send → **Send and Download**"
+          },
+          "response": []
+        },
+        {
+          "name": "09 CSV — ค่าล่าสุดทุกแปลง",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/ndvi/latest?days=60&format=csv",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "ndvi",
+                "latest"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "60",
+                  "description": ""
+                },
+                {
+                  "key": "format",
+                  "value": "csv",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "กดลูกศรข้างปุ่ม Send → **Send and Download** (รอราว 75 วินาทีตอนแคชว่าง)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
