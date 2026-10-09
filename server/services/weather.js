@@ -13,10 +13,10 @@ const ymd = (d) => d.replaceAll('-', '')
 const isFill = (v) => v === null || v === undefined || v <= FILL + 1
 
 /** ความดันไอน้ำอิ่มตัวที่อุณหภูมิ T (°C) → kPa */
-const satVapourPressure = (t) => 0.6108 * Math.exp((17.27 * t) / (t + 237.3))
+export const satVapourPressure = (t) => 0.6108 * Math.exp((17.27 * t) / (t + 237.3))
 
 /** รังสีนอกบรรยากาศ Ra (MJ m⁻² วัน⁻¹) ที่ละติจูด lat และวันที่ลำดับ doy */
-function extraterrestrialRadiation(lat, doy) {
+export function extraterrestrialRadiation(lat, doy) {
   const Gsc = 0.082
   const phi = (Math.PI / 180) * lat
   const dr = 1 + 0.033 * Math.cos((2 * Math.PI * doy) / 365)
@@ -32,7 +32,7 @@ function extraterrestrialRadiation(lat, doy) {
   )
 }
 
-function dayOfYear(dateStr) {
+export function dayOfYear(dateStr) {
   const d = new Date(`${dateStr}T00:00:00Z`)
   const start = Date.UTC(d.getUTCFullYear(), 0, 0)
   return Math.floor((d.getTime() - start) / 86400000)
