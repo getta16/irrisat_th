@@ -72,4 +72,26 @@ export const api = {
 
   analyse: (payload) => request('/analysis', json('POST', payload)),
   tiles: (payload) => request('/analysis/tiles', json('POST', payload)),
+
+  /** หน้า API ข้อมูลแปลง — เรียก /api/v1 ฉบับที่ใช้ token Google แทน API key */
+  portalInfo: () => request('/portal/info'),
+  portal: (path) => request(`/portal${path}`),
+
+  /** ไฟล์ที่ไม่ใช่ JSON (CSV / GeoJSON) — ต้องแนบ token จึงใช้ลิงก์ตรงไม่ได้ */
+  async portalFile(path) {
+    const headers = authToken ? { authorization: `Bearer ${authToken}` } : {}
+    const res = await fetch(`${BASE}/portal${path}`, { headers })
+    if (!res.ok) {
+      const body = await res.json().catch(() => null)
+      if (res.status === 401) onUnauthorized?.(body?.error)
+      const err = new Error(body?.error || `คำขอล้มเหลว (${res.status})`)
+      err.detail = body?.detail
+      err.status = res.status
+      throw err
+    }
+    return res.blob()
+  },
 }
+
+/** URL เต็มของ API ภายนอก ที่ผู้ใช้จะเอาไปใส่ใน Postman / script */
+export const publicApiBase = () => new URL(`${BASE}/v1`, window.location.href).href

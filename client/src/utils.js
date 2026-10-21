@@ -25,6 +25,24 @@ export const thaiDate = (iso) => {
 
 export const isoDate = (d) => d.toISOString().slice(0, 10)
 
+/**
+ * ย้อนหลังได้ถึง 1 ม.ค. ของ 10 ปีก่อน (ปีนี้ 2026 → ตั้งแต่ 2016)
+ * ต้องตรงกับ API_MAX_RANGE_DAYS ฝั่งเซิร์ฟเวอร์ (4,020 วัน = 10 ปีเต็ม + ปีปัจจุบัน)
+ */
+export const HISTORY_YEARS = 10
+
+/** ปีที่เลือกเป็นจุดเริ่มได้ ใหม่สุดก่อน */
+export function historyYears() {
+  const last = new Date().getFullYear()
+  return Array.from({ length: HISTORY_YEARS + 1 }, (_, i) => last - i)
+}
+
+/** วันแรกสุดที่เลือกได้ในช่องวันที่ */
+export const historyMinDate = () => `${new Date().getFullYear() - HISTORY_YEARS}-01-01`
+
+/** ป้ายปีแบบ พ.ศ. (ค.ศ.) */
+export const yearLabel = (y) => `${y + 543} (${y})`
+
 export const shiftDays = (iso, n) => {
   const d = new Date(`${iso}T00:00:00Z`)
   d.setUTCDate(d.getUTCDate() + n)

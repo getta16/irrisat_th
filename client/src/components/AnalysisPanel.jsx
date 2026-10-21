@@ -19,6 +19,7 @@ const TABS = [
   { id: 'summary', label: 'สรุป' },
   { id: 'ndvi', label: 'NDVI & Kc' },
   { id: 'water', label: 'สมดุลน้ำ' },
+  { id: 'weather', label: 'สภาพอากาศ' },
   { id: 'table', label: 'ตารางข้อมูล' },
 ]
 
@@ -110,6 +111,7 @@ export default function AnalysisPanel({ field, analysis, loading, error, onRetry
         {analysis && tab === 'summary' && <Summary field={field} a={analysis} />}
         {analysis && tab === 'ndvi' && <NdviChart a={analysis} />}
         {analysis && tab === 'water' && <WaterChart a={analysis} />}
+        {analysis && tab === 'weather' && <WeatherCharts a={analysis} />}
         {analysis && tab === 'table' && <DataTable a={analysis} />}
       </div>
     </div>
@@ -264,6 +266,86 @@ function WaterChart({ a }) {
   )
 }
 
+/* ── สภาพอากาศ (NASA POWER) ───────────────────────────────────── */
+
+function WeatherCharts({ a }) {
+  const s = a.summary
+  const fallbackDays = a.days.filter((d) => d.et0Method === 'hargreaves').length
+
+  return (
+    <>
+      <div className="stat-grid">
+        <Stat label="อุณหภูมิสูงสุดเฉลี่ย" value={fmt(s.avgTmax, 1)} unit="°C" />
+        <Stat label="อุณหภูมิต่ำสุดเฉลี่ย" value={fmt(s.avgTmin, 1)} unit="°C" />
+        <Stat label="ความชื้นสัมพัทธ์เฉลี่ย" value={fmt(s.avgRh, 0)} unit="%" />
+        <Stat label="ความเร็วลมเฉลี่ย" value={fmt(s.avgWind, 1)} unit="ม./วินาที" />
+        <Stat label="รังสีดวงอาทิตย์เฉลี่ย" value={fmt(s.avgSolar, 1)} unit="MJ/ม²/วัน" />
+        <Stat label="ET₀ เฉลี่ย" value={fmt(s.avgEt0, 1)} unit="มม./วัน" />
+        <Stat label="วันที่ฝนตก (≥ 1 มม.)" value={s.rainyDays ?? '—'} unit="วัน" />
+      </div>
+
+      <div className="chart-box" style={{ marginBottom: 12 }}>
+        <div className="chart-title">อุณหภูมิรายวัน (°C) — สูงสุดและต่ำสุดที่ความสูง 2 เมตร</div>
+        <ResponsiveContainer width="100%" height={200}>
+          <ComposedChart data={a.days} margin={CHART_MARGIN}>
+            <CartesianGrid stroke="#eef1ee" vertical={false} />
+            <XAxis dataKey="date" {...axisProps} tickFormatter={thaiDate} minTickGap={40} />
+            <YAxis width={34} domain={['dataMin - 2', 'dataMax + 2']} allowDecimals={false} {...axisProps} />
+            <Tooltip {...tooltipStyle} formatter={(v, n) => [`${Number(v).toFixed(1)} °C`, n]} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Line isAnimationActive={false} type="monotone" dataKey="tmax" name="สูงสุด" stroke="#c9553d" strokeWidth={1.8} dot={false} connectNulls />
+            <Line isAnimationActive={false} type="monotone" dataKey="tmin" name="ต่ำสุด" stroke="#2f7ec2" strokeWidth={1.8} dot={false} connectNulls />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="chart-box" style={{ marginBottom: 12 }}>
+        <div className="chart-title">ความชื้นสัมพัทธ์ (%) และความเร็วลม (ม./วินาที · แกนขวา)</div>
+        <ResponsiveContainer width="100%" height={200}>
+          <ComposedChart data={a.days} margin={CHART_MARGIN}>
+            <CartesianGrid stroke="#eef1ee" vertical={false} />
+            <XAxis dataKey="date" {...axisProps} tickFormatter={thaiDate} minTickGap={40} />
+            <YAxis yAxisId="rh" width={34} domain={[0, 100]} {...axisProps} />
+            <YAxis yAxisId="wind" orientation="right" width={34} domain={[0, 'auto']} {...axisProps} />
+            <Tooltip
+              {...tooltipStyle}
+              formatter={(v, n, p) => [p.dataKey === 'rh' ? `${Number(v).toFixed(0)} %` : `${Number(v).toFixed(1)} ม./วินาที`, n]}
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Area isAnimationActive={false} yAxisId="rh" type="monotone" dataKey="rh" name="ความชื้นสัมพัทธ์" stroke="#2f7ec2" fill="#2f7ec2" fillOpacity={0.12} strokeWidth={1.6} dot={false} connectNulls />
+            <Line isAnimationActive={false} yAxisId="wind" type="monotone" dataKey="wind" name="ลม" stroke="#7b57c4" strokeWidth={1.6} dot={false} connectNulls />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="chart-box">
+        <div className="chart-title">รังสีดวงอาทิตย์ (MJ/ม²/วัน) และ ET₀ (มม./วัน · แกนขวา)</div>
+        <ResponsiveContainer width="100%" height={200}>
+          <ComposedChart data={a.days} margin={CHART_MARGIN}>
+            <CartesianGrid stroke="#eef1ee" vertical={false} />
+            <XAxis dataKey="date" {...axisProps} tickFormatter={thaiDate} minTickGap={40} />
+            <YAxis yAxisId="sol" width={34} domain={[0, 'auto']} {...axisProps} />
+            <YAxis yAxisId="et" orientation="right" width={34} domain={[0, 'auto']} {...axisProps} />
+            <Tooltip
+              {...tooltipStyle}
+              formatter={(v, n, p) => [p.dataKey === 'solar' ? `${Number(v).toFixed(1)} MJ/ม²` : `${Number(v).toFixed(1)} มม.`, n]}
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Bar isAnimationActive={false} yAxisId="sol" dataKey="solar" name="รังสีดวงอาทิตย์" fill="#e8a33d" fillOpacity={0.7} barSize={4} />
+            <Line isAnimationActive={false} yAxisId="et" type="monotone" dataKey="et0" name="ET₀" stroke="#b6741a" strokeWidth={1.8} dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="note info" style={{ marginTop: 12, marginBottom: 0 }}>
+        ข้อมูลอากาศจาก {a.weather?.source || 'NASA POWER'} ที่จุดศูนย์กลางแปลง
+        {Number.isFinite(a.weather?.elevation) && ` (ความสูง ${fmt(a.weather.elevation, 0)} ม.)`} เป็นข้อมูลกริดราว 0.5° ไม่ใช่สถานีวัดในแปลง
+        {fallbackDays > 0 && ` · ${fallbackDays} วันขาดข้อมูลลมหรือรังสี จึงคำนวณ ET₀ ด้วยสมการ Hargreaves แทน`}
+      </div>
+    </>
+  )
+}
+
 /* ── ตาราง ────────────────────────────────────────────────────── */
 
 const COLUMNS = [
@@ -277,6 +359,11 @@ const COLUMNS = [
   ['irrigation', 'ให้น้ำ'],
   ['deficit', 'พร่อง'],
   ['cumEtc', 'ETc สะสม'],
+  ['tmax', 'Tmax °C'],
+  ['tmin', 'Tmin °C'],
+  ['rh', 'RH %'],
+  ['wind', 'ลม ม./วิ'],
+  ['solar', 'รังสี MJ'],
 ]
 
 function DataTable({ a }) {
@@ -307,6 +394,11 @@ function DataTable({ a }) {
               <td>{d.irrigation ? fmt(d.irrigation, 0) : '·'}</td>
               <td>{fmt(d.deficit, 0)}</td>
               <td>{fmt(d.cumEtc, 0)}</td>
+              <td>{fmt(d.tmax, 1)}</td>
+              <td>{fmt(d.tmin, 1)}</td>
+              <td>{fmt(d.rh, 0)}</td>
+              <td>{fmt(d.wind, 1)}</td>
+              <td>{fmt(d.solar, 1)}</td>
             </tr>
           ))}
         </tbody>

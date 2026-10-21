@@ -7,9 +7,12 @@ import { cached, geomKey } from '../services/cache.js'
 import { resolveRange } from '../services/range.js'
 import { getDailyWeather } from '../services/weather.js'
 import { runWaterBalance, demoNdviSeries, SOIL_TYPES, CROPS } from '../services/irrigation.js'
-import { ALLOW_DEMO } from '../config.js'
+import { ALLOW_DEMO, API_MAX_RANGE_DAYS } from '../config.js'
 
 const router = Router()
+
+/** ชั้นแผนที่ใช้ภาพย้อนหลังไม่เกินนี้จากวันสิ้นสุด */
+const TILE_MAX_DAYS = 180
 
 router.get('/options', (_req, res) => {
   res.json({
@@ -45,7 +48,7 @@ router.post('/', async (req, res) => {
     if (!geometry) return res.status(400).json({ error: 'ต้องระบุ fieldId หรือ geometry' })
     if (!centroid) return res.status(400).json({ error: 'ต้องระบุจุดศูนย์กลางของแปลง (centroid)' })
 
-    const { start, end } = resolveRange(body)
+    const { start, end } = resolveRange(body, { maxDays: API_MAX_RANGE_DAYS })
     const collection = settings.collection || body.collection || 'S2'
     const maxCloud = Number(body.maxCloud ?? settings.maxCloud ?? 60)
 
@@ -121,14 +124,19 @@ router.post('/tiles', async (req, res) => {
     }
     if (!geometry) return res.status(400).json({ error: 'ต้องระบุ fieldId หรือ geometry' })
 
-    const { start, end } = resolveRange(body)
+    const range = resolveRange(body, { maxDays: API_MAX_RANGE_DAYS })
+    // ภาพบนแผนที่เป็นค่ามัธยฐานของช่วง — ถ้าช่วงยาวหลายปีจะได้ภาพเฉลี่ยที่ไม่บอกสภาพแปลงตอนนี้
+    // และ EE ต้องรวมภาพหลายร้อยภาพ จึงใช้แค่ TILE_MAX_DAYS วันสุดท้ายของช่วง
+    const end = range.end
+    const earliest = new Date(Date.parse(end) - TILE_MAX_DAYS * 86400000).toISOString().slice(0, 10)
+    const start = range.start > earliest ? range.start : earliest
     const layer = body.layer || 'ndvi'
     const collection = body.collection || 'S2'
     const maxCloud = Number(body.maxCloud ?? 60)
 
     const key = `tiles|${layer}|${collection}|${start}|${end}|${maxCloud}|${geomKey(geometry)}`
     const tiles = await cached(key, () => getNdviTiles({ geometry, start, end, collection, maxCloud, layer }))
-    res.json(tiles)
+    res.json({ ...tiles, start, end })
   } catch (err) {
     const detail = String(err?.message || err)
     const status = geeStatus()

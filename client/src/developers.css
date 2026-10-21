@@ -1,0 +1,390 @@
+/* ── หน้า API ข้อมูลแปลง (developers.html) ─────────────────────────── */
+
+.dev-page {
+  min-height: 100%;
+}
+
+.dev-header {
+  position: sticky;
+  top: 0;
+  height: 56px;
+}
+
+.dev-header .brand {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dev-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: grid;
+  gap: 16px;
+}
+
+.dev-hero h1 {
+  margin: 0 0 6px;
+  font-size: 26px;
+}
+
+.dev-hero p {
+  margin: 0;
+  color: var(--ink-2);
+  max-width: 760px;
+}
+
+.dev-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  min-width: 0;
+}
+
+.dev-card h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.dev-card h3 {
+  margin: 18px 0 6px;
+  font-size: 14px;
+}
+
+.dev-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.dev-muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dev-loading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dev-card code,
+.dev-url code,
+.dev-json,
+.dev-code pre {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.dev-card :not(pre) > code {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
+  word-break: break-all;
+}
+
+/* การเชื่อมต่อ */
+
+.dev-kv {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px 14px;
+  margin: 0;
+}
+
+.dev-kv dt {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.dev-kv dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.dev-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+
+.dev-badge.ok {
+  background: var(--green-50);
+  color: var(--green-600);
+}
+
+.dev-badge.warn {
+  background: var(--warn-50);
+  color: var(--warn);
+}
+
+.dev-copy {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+/* ตาราง */
+
+.dev-table {
+  max-height: 420px;
+}
+
+.dev-table td {
+  white-space: nowrap;
+}
+
+.dev-id {
+  font-size: 11.5px !important;
+  margin-right: 4px;
+}
+
+.dev-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ทดลองเรียก */
+
+.dev-endpoints {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+}
+
+.dev-endpoint {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  text-align: left;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.dev-endpoint:hover {
+  border-color: var(--line-strong);
+}
+
+.dev-endpoint.on {
+  border-color: var(--green);
+  background: var(--green-50);
+  box-shadow: inset 0 0 0 1px var(--green);
+}
+
+.dev-method {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green-600);
+  background: var(--green-200);
+  border-radius: 4px;
+  padding: 1px 5px;
+  align-self: center;
+}
+
+.dev-ep-path {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  align-self: center;
+  overflow-wrap: anywhere;
+}
+
+.dev-ep-title {
+  grid-column: 1 / -1;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.dev-ep-desc {
+  margin: 10px 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.dev-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+  margin: 14px 0;
+}
+
+.dev-field {
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dev-field.wide {
+  flex: 1 1 260px;
+}
+
+.dev-field input,
+.dev-field select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.dev-field input[type='number'] {
+  width: 110px;
+}
+
+.dev-check {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  padding-bottom: 6px;
+}
+
+.dev-url {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.dev-url code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dev-code {
+  margin-top: 10px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #10231a;
+  color: #dcebe3;
+}
+
+.dev-code-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: #0b1a13;
+}
+
+.dev-code-tabs button {
+  border: 0;
+  background: transparent;
+  color: #9fb8ab;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 5px;
+}
+
+.dev-code-tabs button.on {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.dev-code-tabs .dev-copy {
+  color: #dcebe3;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dev-code pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.dev-code-note {
+  padding: 0 14px 10px;
+  font-size: 12px;
+  color: #f0c98a;
+}
+
+.dev-run {
+  margin: 14px 0 10px;
+}
+
+.dev-run .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ผลลัพธ์ */
+
+.dev-result {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
+.dev-result > * {
+  justify-self: stretch;
+}
+
+.dev-result > .btn {
+  justify-self: start;
+}
+
+.dev-result-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dev-json {
+  margin: 0;
+  max-height: 420px;
+  overflow: auto;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.dev-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  color: var(--ink-2);
+}
+
+@media (max-width: 640px) {
+  .dev-header .brand small {
+    display: none;
+  }
+
+  .dev-kv {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .dev-kv dd {
+    margin-bottom: 10px;
+  }
+
+  .dev-card {
+    padding: 14px;
+  }
+}

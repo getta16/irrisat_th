@@ -119,7 +119,8 @@ const safeName = (s) => String(s).replace(/[^\w\-]+/g, '_').slice(0, 60) || 'are
 router.get('/areas', (req, res) => {
   const withGeometry = isTrue(req.query.geometry)
   const areas = listFields(req.apiOwner).map((f) => summarizeArea(f, { withGeometry }))
-  res.json({ owner: req.apiOwner.email, count: areas.length, areas })
+  // req.apiOwner เป็น null ได้เมื่อเรียกผ่าน /api/portal ในโหมดไม่บังคับล็อกอิน
+  res.json({ owner: req.apiOwner?.email ?? null, count: areas.length, areas })
 })
 
 // ต้องประกาศก่อน /areas/:id ไม่อย่างนั้น "areas.geojson" จะถูกจับเป็น id

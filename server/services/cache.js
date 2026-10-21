@@ -11,14 +11,15 @@ const cache = new Map()
 const TTL_MS = 30 * 60 * 1000
 const MAX_ENTRIES = 500
 
-export function cached(key, producer) {
+/** @param {number} [ttlMs] อายุแคชของคีย์นี้ (ไม่ระบุ = 30 นาที) */
+export function cached(key, producer, ttlMs = TTL_MS) {
   const hit = cache.get(key)
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.value
+  if (hit && Date.now() - hit.at < hit.ttl) return hit.value
   const value = producer().catch((err) => {
     cache.delete(key)
     throw err
   })
-  cache.set(key, { at: Date.now(), value })
+  cache.set(key, { at: Date.now(), ttl: ttlMs, value })
   if (cache.size > MAX_ENTRIES) cache.delete(cache.keys().next().value)
   return value
 }

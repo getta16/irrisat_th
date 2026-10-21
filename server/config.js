@@ -78,5 +78,6 @@ export const API_KEYS = new Map(
 // จำนวนคำขอต่อนาทีต่อคีย์
 export const API_RATE_PER_MIN = Number(process.env.API_RATE_PER_MIN || 60)
 
-// ช่วงวันที่ยาวที่สุดที่ขอได้ต่อครั้ง — ยาวกว่านี้ Earth Engine มักหมดเวลา
-export const API_MAX_RANGE_DAYS = Number(process.env.API_MAX_RANGE_DAYS || 730)
+// ช่วงวันที่ยาวที่สุดที่ขอได้ต่อครั้ง (ทั้งหน้าเว็บและ API) — ค่าเริ่มต้น 4,020 วัน = ย้อนหลังได้ถึง 1 ม.ค. ของ 10 ปีก่อน
+// ช่วงยาวถูกแบ่งส่ง Earth Engine ทีละปี (services/ndvi.js) จึงไม่หมดเวลา แต่ครั้งแรกรอนานขึ้นตามจำนวนปี
+export const API_MAX_RANGE_DAYS = Number(process.env.API_MAX_RANGE_DAYS || 4020)

@@ -14,10 +14,12 @@ import {
   ALLOWED_DOMAINS,
   LEGACY_OWNER_EMAIL,
   API_KEYS,
+  API_RATE_PER_MIN,
+  API_MAX_RANGE_DAYS,
 } from './config.js'
 import { initEarthEngine, geeStatus } from './services/gee.js'
 import { initStore } from './services/store.js'
-import { requireAuth } from './services/auth.js'
+import { requireAuth, ownerOf } from './services/auth.js'
 import authRouter from './routes/auth.js'
 import importRouter from './routes/import.js'
 import fieldsRouter from './routes/fields.js'
@@ -48,6 +50,27 @@ app.use('/api/v1', requireApiKey, publicApiRouter)
 app.use('/api/import', requireAuth, importRouter)
 app.use('/api/fields', requireAuth, fieldsRouter)
 app.use('/api/analysis', requireAuth, analysisRouter)
+
+// หน้าเว็บ "API ข้อมูลแปลง" — ให้ผู้ที่ล็อกอินแล้วลองเรียก API v1 กับแปลงของตัวเองได้
+// โดยไม่ต้องเอา API key มาใส่ในเบราว์เซอร์ (ใช้ token ของ Google แทน คำตอบเหมือน /api/v1 ทุกอย่าง)
+app.get('/api/portal/info', requireAuth, (req, res) => {
+  const email = req.user?.email?.toLowerCase()
+  res.json({
+    email: req.user?.email ?? null,
+    hasApiKey: !!email && [...API_KEYS.values()].some((e) => e.toLowerCase() === email),
+    rateLimitPerMin: API_RATE_PER_MIN,
+    maxRangeDays: API_MAX_RANGE_DAYS,
+  })
+})
+app.use(
+  '/api/portal',
+  requireAuth,
+  (req, _res, next) => {
+    req.apiOwner = ownerOf(req)
+    next()
+  },
+  publicApiRouter
+)
 
 // เสิร์ฟหน้าเว็บที่ build แล้ว (ถ้ามี) — ใช้ตอนรัน production ด้วยคำสั่งเดียว
 const clientDist = path.join(__dirname, '..', 'client', 'dist')

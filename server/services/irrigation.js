@@ -147,6 +147,13 @@ export function runWaterBalance({ ndviSeries = [], weatherDays = [], settings = 
       cumEtc: round(cumEtc, 1),
       cumRain: round(cumRain, 1),
       cumIrrigation: round(cumIrrigation, 1),
+      // ข้อมูลอากาศที่ใช้คำนวณ ET₀ — ส่งต่อให้หน้าเว็บแสดงผล
+      tmax: w.tmax ?? null,
+      tmin: w.tmin ?? null,
+      rh: w.rh ?? null,
+      wind: w.wind ?? null,
+      solar: w.solar ?? null,
+      et0Method: w.et0Method ?? null,
     }
   })
 
@@ -190,6 +197,13 @@ export function runWaterBalance({ ndviSeries = [], weatherDays = [], settings = 
       totalRain: round(days.reduce((s, d) => s + d.rain, 0), 1),
       totalEffectiveRain: round(cumRain, 1),
       totalIrrigation: round(cumIrrigation, 1),
+      avgTmax: round(mean(days.map((d) => d.tmax)), 1),
+      avgTmin: round(mean(days.map((d) => d.tmin)), 1),
+      avgRh: round(mean(days.map((d) => d.rh)), 0),
+      avgWind: round(mean(days.map((d) => d.wind)), 1),
+      avgSolar: round(mean(days.map((d) => d.solar)), 1),
+      avgEt0: round(mean(days.map((d) => d.et0)), 2),
+      rainyDays: days.filter((d) => d.rain >= 1).length,
       daysUntilIrrigation,
       beyondHorizon,
       recommendedIrrigationMm: round(recommendedMm, 1),
@@ -228,6 +242,12 @@ export function demoNdviSeries({ start, end, lat = 15, lon = 100, revisitDays = 
     })
   }
   return out
+}
+
+/** ค่าเฉลี่ยโดยข้ามวันที่ไม่มีข้อมูล */
+function mean(values) {
+  const ok = values.filter((v) => v !== null && v !== undefined && Number.isFinite(v))
+  return ok.length ? ok.reduce((s, v) => s + v, 0) / ok.length : null
 }
 
 function round(v, n) {

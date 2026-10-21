@@ -219,7 +219,7 @@
                 {
                   "key": "end",
                   "value": "2026-09-15",
-                  "description": "วันสิ้นสุด YYYY-MM-DD (ห่างจาก start ได้ไม่เกิน 730 วัน)"
+                  "description": "วันสิ้นสุด YYYY-MM-DD (ห่างจาก start ได้ไม่เกิน 4,020 วัน = ย้อนหลังถึง 1 ม.ค. ของ 10 ปีก่อน)"
                 },
                 {
                   "key": "collection",

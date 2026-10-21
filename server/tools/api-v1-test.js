@@ -66,7 +66,8 @@ async function main() {
   check('แปลงที่ไม่มีอยู่ → 404', (await get('/areas/00000000-0000-0000-0000-000000000000')).status === 404)
 
   console.log('\n3. ตรวจค่าที่ส่งมา')
-  check('ช่วงวันยาวเกิน → 400', (await get(`/areas/${smallest.id}/ndvi?start=2015-01-01&end=2026-01-01`)).status === 400)
+  check('ช่วงวันยาวเกิน → 400', (await get(`/areas/${smallest.id}/ndvi?start=2010-01-01&end=2026-01-01`)).status === 400)
+  check('fromYear ผิด → 400', (await get(`/areas/${smallest.id}/ndvi?fromYear=18`)).status === 400)
   check('วันที่ผิดรูปแบบ → 400', (await get(`/areas/${smallest.id}/ndvi?start=01/06/2026`)).status === 400)
   check('collection ผิด → 400', (await get(`/areas/${smallest.id}/ndvi?collection=MODIS`)).status === 400)
 

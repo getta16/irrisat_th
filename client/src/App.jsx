@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from './api.js'
-import { isoDate, shiftDays } from './utils.js'
+import { isoDate, shiftDays, historyYears, historyMinDate, yearLabel } from './utils.js'
 import { useAuth } from './useAuth.js'
 import { loadPref, savePref } from './prefs.js'
 
@@ -300,10 +300,27 @@ export default function App() {
 
         <div className="header-controls">
           <div>
+            <label>ย้อนหลังถึงปี</label>
+            <select
+              className="header-select"
+              value={/-01-01$/.test(range.start) ? range.start.slice(0, 4) : ''}
+              onChange={(e) => e.target.value && setRange((r) => ({ ...r, start: `${e.target.value}-01-01` }))}
+              title="ดึงข้อมูลตั้งแต่ 1 ม.ค. ของปีที่เลือก — ย้อนหลังได้ถึง 10 ปี (ยิ่งหลายปียิ่งรอนาน ครั้งแรกราว 1 นาที)"
+            >
+              <option value="">กำหนดเอง</option>
+              {historyYears().map((y) => (
+                <option key={y} value={y}>
+                  {yearLabel(y)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label>ตั้งแต่</label>
             <input
               type="date"
               value={range.start}
+              min={historyMinDate()}
               max={range.end}
               onChange={(e) => setRange((r) => ({ ...r, start: e.target.value }))}
             />
@@ -322,6 +339,14 @@ export default function App() {
             <span className="dot" />
             {geeChip.text}
           </span>
+
+          <a
+            className="header-link"
+            href={`${import.meta.env.BASE_URL}developers.html`}
+            title="ดึงข้อมูลแปลง NDVI และ Kc ไปใช้ต่อใน Postman / QGIS / Power BI"
+          >
+            API
+          </a>
 
           {auth.user ? (
             <UserMenu user={auth.user} onSignOut={() => auth.signOut()} />

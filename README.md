@@ -651,7 +651,8 @@ API_KEYS=irrisat_xxxxxxxxxxxxxxxxxxxxxxxxxxxx:gettiraput@gmail.com
 | `GET /api/v1/areas/:id/timeseries` | NDVI + Kc **รายวัน** (เติมค่าระหว่างภาพ) — `?weather=1` เพิ่ม ET₀ / ETc / ฝน |
 | `GET /api/v1/ndvi/latest` | ภาพล่าสุดของทุกแปลง — `?days=60` หาย้อนหลังกี่วัน (สูงสุด 180) |
 
-พารามิเตอร์ร่วม: `start`, `end` (`YYYY-MM-DD`, ค่าเริ่มต้น 180 วันย้อนหลัง, ขอได้ไม่เกิน 730 วัน),
+พารามิเตอร์ร่วม: `start`, `end` (`YYYY-MM-DD`, ค่าเริ่มต้น 180 วันย้อนหลัง, ขอได้ไม่เกิน 4,020 วัน = ย้อนหลังได้ถึง 1 ม.ค. ของ 10 ปีก่อน),
+`fromYear` (เช่น `fromYear=2018` = ตั้งแต่ 1 ม.ค. 2018 ใช้แทน `start` ได้),
 `collection` (`S2` หรือ `LANDSAT`, ค่าเริ่มต้นตามที่ตั้งไว้ในแปลง), `maxCloud` (0-100),
 `format=csv` (เส้นทาง `ndvi`, `timeseries`, `ndvi/latest`)
 
@@ -677,17 +678,20 @@ Invoke-WebRequest "$base/areas/<id>/timeseries?weather=1&format=csv" -Headers $h
 
 - จำกัด 60 คำขอ/นาที/คีย์ (`API_RATE_PER_MIN`) — เกินตอบ `429` พร้อม `Retry-After`
 - ไม่เปิด CORS — เรียกจากฝั่งเซิร์ฟเวอร์ / script เท่านั้น ห้ามฝังคีย์ในหน้าเว็บ
-- ครั้งแรกของแต่ละแปลงใช้เวลา 3-15 วินาที (แปลงใหญ่นานกว่า) ครั้งถัดไปภายใน 30 นาทีได้จากแคชทันที
+- ครั้งแรกของแต่ละแปลงใช้เวลา 3-15 วินาทีต่อข้อมูล 1 ปี (แปลงใหญ่นานกว่า) ช่วงยาวถูกแบ่งส่งทีละปี พร้อมกัน 3 ก้อน
+  ขอย้อนหลัง 10 ปีจึงรอราว 1 นาที ครั้งถัดไปได้จากแคชทันที (ปีที่ผ่านไปแล้วเก็บแคช 24 ชม. ช่วงล่าสุด 30 นาที)
+- ข้อมูลก่อนปี 2019 ควรใช้ `collection=LANDSAT` — Sentinel-2 ระดับ L2A ในไทยก่อนปลายปี 2018 มีน้อยมาก
+  (ทดสอบแปลงซับตะเคียน 2016-2018 ได้แค่ 3-7 ภาพ/ปี เทียบกับ 30-40 ภาพ/ปี ตั้งแต่ 2019) ส่วน Landsat 8 ได้ 9-15 ภาพ/ปี ตั้งแต่ 2013
   `/ndvi/latest` กับ 17 แปลงใช้ราว 45 วินาทีตอนแคชว่าง
 - แคชและตัวนับคำขออยู่ในหน่วยความจำ — รีสตาร์ตแล้วหาย และถ้า Cloud Run ขยายเป็นหลาย instance
   แต่ละตัวนับแยกกัน
 
 ทดสอบกับเซิร์ฟเวอร์ที่เปิดอยู่: `npm run test:api`
 
-**Postman** — Import ไฟล์ `postman/IRRISAT-THAI-API-v1.postman_collection.json`
+**Postman** — Import ไฟล์ `client/public/postman/IRRISAT-THAI-API-v1.postman_collection.json` (หรือดาวน์โหลดจากหน้า `/developers.html` ของเว็บ)
 แล้วใส่คีย์ในตัวแปร `apiKey` ของ collection (ไฟล์ไม่มีคีย์ติดมา) กด Send ที่ **01 รายการแปลง** ก่อน
 ระบบจะเก็บ id ลง `areaId` ให้คำขออื่นใช้ต่อ — ตั้งตัวแปร `areaName` เพื่อเลือกแปลงตามชื่อ
-รันทั้งชุดจาก command line ได้ด้วย `npx newman run postman/IRRISAT-THAI-API-v1.postman_collection.json --env-var apiKey=<คีย์>`
+รันทั้งชุดจาก command line ได้ด้วย `npx newman run client/public/postman/IRRISAT-THAI-API-v1.postman_collection.json --env-var apiKey=<คีย์>`
 
 ---
 
