@@ -1,6 +1,6 @@
 /**
  * API ภายนอก (อ่านอย่างเดียว) — ข้อมูลแปลง + NDVI + Kc ให้ script / QGIS / Power BI ดึงไปใช้
- * ยืนยันตัวตนด้วย X-API-Key (ดู services/apiKey.js) และเห็นเฉพาะแปลงของอีเมลที่ผูกกับคีย์
+ * ไม่ต้องใช้คีย์ (ดู services/publicAccess.js) และเห็นเฉพาะแปลงของ PUBLIC_API_OWNER
  *
  *   GET /api/v1/areas                  รายการแปลง (?geometry=1 แนบรูปทรงด้วย)
  *   GET /api/v1/areas.geojson          รายการแปลงเป็น FeatureCollection

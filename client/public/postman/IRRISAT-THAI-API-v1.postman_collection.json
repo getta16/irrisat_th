@@ -1,28 +1,11 @@
 {
   "info": {
     "name": "IRRISAT-THAI API v1",
-    "description": "API อ่านอย่างเดียวของ IRRISAT-THAI — ข้อมูลแปลง, NDVI และ Kc\n\n**เริ่มใช้:**\n1. คลิกชื่อ collection → แท็บ **Variables** → ใส่คีย์ในช่อง `apiKey` (ใช้เฉพาะส่วนก่อน `:`) → Save\n2. เปิด **01 รายการแปลง** → Send — ระบบจะเก็บ id ของแปลงลงตัวแปร `areaId` ให้เอง\n3. คำขออื่นใช้ `{{areaId}}` ต่อได้เลย\n\nคัดลอกคีย์ลง clipboard (PowerShell):\n```\n((gcloud secrets versions access latest --secret irrisat-api-keys --project iwasamsat) -split ':')[0] | Set-Clipboard\n```\n\n- Kc = 1.37 × NDVI − 0.086 จำกัดช่วง 0-1.25\n- จำกัด 60 คำขอ/นาที/คีย์ · คำขอแรกหลังพักนานรอ 10-30 วินาที\n- `/ndvi/latest` ใช้ ~75 วินาทีตอนแคชว่าง — ตั้ง Settings → General → Request timeout เป็น 300000\n- ทดสอบกับเครื่องตัวเอง: เปลี่ยน `base` เป็น `http://localhost:5174/api/v1`",
+    "description": "API อ่านอย่างเดียวของ IRRISAT-THAI — ข้อมูลแปลง, NDVI และ Kc\n\n**เริ่มใช้:** ไม่ต้องใช้คีย์ — ส่งเฉพาะแปลงของ gettiraput@gmail.com\n1. เปิด **01 รายการแปลง** → Send — ระบบจะเก็บ id ของแปลงลงตัวแปร `areaId` ให้เอง\n2. คำขออื่นใช้ `{{areaId}}` ต่อได้เลย\n\n- Kc = 1.37 × NDVI − 0.086 จำกัดช่วง 0-1.25\n- จำกัด 60 คำขอ/นาที/IP · คำขอแรกหลังพักนานรอ 10-30 วินาที\n- `/ndvi/latest` ใช้ ~75 วินาทีตอนแคชว่าง — ตั้ง Settings → General → Request timeout เป็น 300000\n- ทดสอบกับเครื่องตัวเอง: เปลี่ยน `base` เป็น `http://localhost:5174/api/v1`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
-    "type": "apikey",
-    "apikey": [
-      {
-        "key": "key",
-        "value": "X-API-Key",
-        "type": "string"
-      },
-      {
-        "key": "value",
-        "value": "{{apiKey}}",
-        "type": "string"
-      },
-      {
-        "key": "in",
-        "value": "header",
-        "type": "string"
-      }
-    ]
+    "type": "noauth"
   },
   "event": [
     {
@@ -30,10 +13,6 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "// เตือนก่อนส่ง ถ้ายังไม่ได้ใส่คีย์ หรือเผลอวางอีเมลติดมาด้วย",
-          "const key = pm.variables.get('apiKey') || ''; // อ่านได้ทั้งจาก collection และ environment",
-          "if (!key) console.warn('ยังไม่ได้ใส่ apiKey ในแท็บ Variables ของ collection');",
-          "else if (key.includes(':')) console.warn('apiKey มี \":\" ติดมา — ใช้เฉพาะส่วนก่อน \":\" (ตัดอีเมลทิ้ง)');",
           "const needsArea = pm.request.url.toString().includes('{{areaId}}');",
           "if (needsArea && !pm.variables.get('areaId')) console.warn('areaId ว่าง — Send \"01 รายการแปลง\" ก่อน');"
         ]
@@ -45,11 +24,6 @@
       "key": "base",
       "value": "https://irrisat-thai-29589356609.us-central1.run.app/api/v1",
       "type": "string"
-    },
-    {
-      "key": "apiKey",
-      "value": "",
-      "type": "secret"
     },
     {
       "key": "areaId",
@@ -109,7 +83,7 @@
                 }
               ]
             },
-            "description": "รายการแปลงทั้งหมดของเจ้าของคีย์\n\nหลัง Send จะเก็บ id ลง `areaId` ให้ — ตั้งตัวแปร `areaName` เพื่อเลือกแปลงตามชื่อ"
+            "description": "รายการแปลงทั้งหมดของ gettiraput@gmail.com\n\nหลัง Send จะเก็บ id ลง `areaId` ให้ — ตั้งตัวแปร `areaName` เพื่อเลือกแปลงตามชื่อ"
           },
           "response": []
         },

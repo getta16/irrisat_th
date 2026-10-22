@@ -277,24 +277,12 @@ function Connection({ base, info, copied, setCopied }) {
         </dd>
         <dt>ยืนยันตัวตน</dt>
         <dd>
-          ส่ง header <code>X-API-Key: &lt;คีย์ของคุณ&gt;</code> ทุกคำขอ (หรือ <code>Authorization: Bearer &lt;คีย์&gt;</code>)
-        </dd>
-        <dt>API key</dt>
-        <dd>
-          {info ? (
-            info.hasApiKey ? (
-              <span className="dev-badge ok">บัญชีนี้มีคีย์แล้ว</span>
-            ) : (
-              <span className="dev-badge warn">บัญชีนี้ยังไม่มีคีย์ — ขอจากผู้ดูแลระบบ</span>
-            )
-          ) : (
-            '—'
-          )}
-          <span className="dev-muted"> คีย์ไม่แสดงบนหน้าเว็บ ใช้กับ Postman / script เท่านั้น ห้ามใส่ในหน้าเว็บอื่น</span>
+          <span className="dev-badge ok">ไม่ต้องใช้ API key</span>
+          <span className="dev-muted"> ส่งเฉพาะแปลงของ {info?.publicApiOwner ?? 'gettiraput@gmail.com'}</span>
         </dd>
         <dt>ข้อจำกัด</dt>
         <dd>
-          {info?.rateLimitPerMin ?? 60} คำขอ/นาที/คีย์ · ย้อนหลังได้ถึง 10 ปี (ไม่เกิน {(info?.maxRangeDays ?? 4020).toLocaleString()} วันต่อครั้ง) ·
+          {info?.rateLimitPerMin ?? 60} คำขอ/นาที/IP · ย้อนหลังได้ถึง 10 ปี (ไม่เกิน {(info?.maxRangeDays ?? 4020).toLocaleString()} วันต่อครั้ง) ·
           ครั้งแรกของแต่ละแปลงใช้เวลา 3–15 วินาทีต่อข้อมูล 1 ปี (10 ปีราว 1 นาที)
         </dd>
         <dt>Postman</dt>
@@ -302,7 +290,7 @@ function Connection({ base, info, copied, setCopied }) {
           <a className="btn sm" href={postman} download>
             ⬇ ดาวน์โหลด Postman collection
           </a>
-          <span className="dev-muted"> Import แล้วใส่คีย์ในตัวแปร apiKey ของ collection แล้วกด Send ที่ “01 รายการแปลง” ก่อน</span>
+          <span className="dev-muted"> Import แล้วกด Send ที่ “01 รายการแปลง” ก่อน</span>
         </dd>
       </dl>
     </section>
@@ -385,12 +373,12 @@ const CODE_TABS = [
 
 function codeFor(tab, url) {
   if (tab === 'ps') {
-    return `$h = @{ 'X-API-Key' = '<API_KEY>' }\nInvoke-RestMethod "${url}" -Headers $h`
+    return `Invoke-RestMethod "${url}"`
   }
   if (tab === 'py') {
-    return `import requests\n\nr = requests.get(\n    "${url}",\n    headers={"X-API-Key": "<API_KEY>"},\n    timeout=120,\n)\nr.raise_for_status()\ndata = r.json()`
+    return `import requests\n\nr = requests.get("${url}", timeout=120)\nr.raise_for_status()\ndata = r.json()`
   }
-  return `curl -H "X-API-Key: <API_KEY>" "${url}"`
+  return `curl "${url}"`
 }
 
 function Explorer({ areas, endpointId, setEndpointId, query, setQuery, base, info, copied, setCopied }) {
@@ -565,9 +553,6 @@ function Explorer({ areas, endpointId, setEndpointId, query, setQuery, base, inf
           <CopyButton text={codeFor(codeTab, url)} copied={copied} setCopied={setCopied} />
         </div>
         <pre>{codeFor(codeTab, url)}</pre>
-        {info && !info.hasApiKey && (
-          <div className="dev-code-note">แทน &lt;API_KEY&gt; ด้วยคีย์ของคุณ — บัญชีนี้ยังไม่มีคีย์ ต้องขอจากผู้ดูแลระบบก่อน</div>
-        )}
       </div>
 
       <div className="btn-row dev-run">

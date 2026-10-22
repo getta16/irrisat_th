@@ -13,7 +13,7 @@ import {
   ALLOWED_EMAILS,
   ALLOWED_DOMAINS,
   LEGACY_OWNER_EMAIL,
-  API_KEYS,
+  PUBLIC_API_OWNER,
   API_RATE_PER_MIN,
   API_MAX_RANGE_DAYS,
 } from './config.js'
@@ -25,13 +25,14 @@ import importRouter from './routes/import.js'
 import fieldsRouter from './routes/fields.js'
 import analysisRouter from './routes/analysis.js'
 import publicApiRouter from './routes/publicApi.js'
-import { requireApiKey } from './services/apiKey.js'
+import { publicApiAccess } from './services/publicAccess.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
-// /api/v1 ไม่เปิด CORS — คีย์ต้องอยู่ฝั่งเซิร์ฟเวอร์เท่านั้น ถ้าเปิดไว้ หน้าเว็บที่ไหนก็ได้
-// ที่ได้คีย์ไปจะเรียกตรงจากเบราว์เซอร์ของคนอื่นได้ (header X-API-Key ทำให้ preflight ตก)
+// Cloud Run อยู่หลัง load balancer หนึ่งชั้น — ให้ req.ip เป็น IP จริงของผู้เรียก (ใช้จำกัดจำนวนคำขอของ /api/v1)
+app.set('trust proxy', 1)
+// /api/v1 ไม่เปิด CORS — ไม่ให้หน้าเว็บอื่นเรียกจากเบราว์เซอร์ของผู้ชมจนโควตา Earth Engine หมด
 const corsAll = cors()
 app.use((req, res, next) => (req.path.startsWith('/api/v1/') ? next() : corsAll(req, res, next)))
 app.use(express.json({ limit: '25mb' }))
@@ -43,8 +44,8 @@ app.get('/api/status', (_req, res) => {
 // ต้องอยู่ก่อน requireAuth เสมอ — ตอนอยู่หน้าล็อกอินยังไม่มี token จะเรียกเส้นทางนี้
 app.use('/api/auth', authRouter)
 
-// API ภายนอกใช้ API key แทนการล็อกอิน Google — จึงต้องอยู่ก่อน requireAuth เช่นกัน
-app.use('/api/v1', requireApiKey, publicApiRouter)
+// API ภายนอกไม่ต้องล็อกอินและไม่ต้องใช้คีย์ เห็นเฉพาะแปลงของ PUBLIC_API_OWNER — จึงต้องอยู่ก่อน requireAuth เช่นกัน
+app.use('/api/v1', publicApiAccess, publicApiRouter)
 
 // ข้อมูลแปลงและผลวิเคราะห์ต้องลงชื่อเข้าใช้ก่อน (เมื่อตั้ง GOOGLE_CLIENT_ID ไว้)
 app.use('/api/import', requireAuth, importRouter)
@@ -52,12 +53,11 @@ app.use('/api/fields', requireAuth, fieldsRouter)
 app.use('/api/analysis', requireAuth, analysisRouter)
 
 // หน้าเว็บ "API ข้อมูลแปลง" — ให้ผู้ที่ล็อกอินแล้วลองเรียก API v1 กับแปลงของตัวเองได้
-// โดยไม่ต้องเอา API key มาใส่ในเบราว์เซอร์ (ใช้ token ของ Google แทน คำตอบเหมือน /api/v1 ทุกอย่าง)
+// (ใช้ token ของ Google คำตอบเหมือน /api/v1 ทุกอย่าง)
 app.get('/api/portal/info', requireAuth, (req, res) => {
-  const email = req.user?.email?.toLowerCase()
   res.json({
     email: req.user?.email ?? null,
-    hasApiKey: !!email && [...API_KEYS.values()].some((e) => e.toLowerCase() === email),
+    publicApiOwner: PUBLIC_API_OWNER,
     rateLimitPerMin: API_RATE_PER_MIN,
     maxRangeDays: API_MAX_RANGE_DAYS,
   })
@@ -114,9 +114,7 @@ app.listen(PORT, () => {
       : '  ล็อกอิน Google  →  ปิดอยู่ — เห็นแปลงทั้งหมดรวมกัน (ตั้ง GOOGLE_CLIENT_ID ใน .env เพื่อเปิด)'
   )
   console.log(
-    API_KEYS.size
-      ? `  API ภายนอก      →  /api/v1 เปิดใช้งาน (${API_KEYS.size} คีย์: ${[...new Set(API_KEYS.values())].join(', ')})`
-      : '  API ภายนอก      →  ปิดอยู่ (ตั้ง API_KEYS ใน .env เพื่อเปิด)'
+    `  API ภายนอก      →  /api/v1 เปิดใช้งาน ไม่ต้องใช้คีย์ (แปลงของ ${PUBLIC_API_OWNER})`
   )
   initEarthEngine().then(() => {
     const s = geeStatus()

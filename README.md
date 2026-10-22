@@ -571,7 +571,7 @@ new_irresat/
 │   │   └── publicApi.js   GET  /api/v1/*        — API ภายนอก (API key) NDVI + Kc
 │   ├── services/
 │   │   ├── auth.js        ตรวจ Google ID token + รายชื่ออีเมลที่อนุญาต
-│   │   ├── apiKey.js      ตรวจ X-API-Key + จำกัดจำนวนคำขอต่อนาที
+│   │   ├── publicAccess.js  ผูก /api/v1 กับแปลงของ PUBLIC_API_OWNER + จำกัดคำขอต่อนาที
 │   │   ├── ndvi.js        NDVI ที่กรองเมฆแล้ว + แคช (ใช้ร่วมกันทั้งหน้าเว็บและ /api/v1)
 │   │   ├── cache.js       แคชในหน่วยความจำ 30 นาที
 │   │   ├── range.js       ตรวจและเติมช่วงวันที่
@@ -626,21 +626,9 @@ new_irresat/
 
 ### API ภายนอก `/api/v1` — ดึง NDVI และ Kc ไปใช้ในระบบอื่น
 
-สำหรับ script / QGIS / Power BI ที่กดล็อกอิน Google ไม่ได้ ใช้ **API key** แทน
-แต่ละคีย์ผูกกับอีเมลเดียว และ**เห็นเฉพาะแปลงของอีเมลนั้น** อ่านได้อย่างเดียว แก้/ลบแปลงไม่ได้
-
-**ออกคีย์** — สุ่มคีย์ยาว ๆ แล้วใส่ใน `.env` (บน Cloud Run ใส่เป็น secret) แล้วรีสตาร์ต
-
-```powershell
-node -e "console.log('irrisat_' + require('crypto').randomBytes(24).toString('base64url'))"
-```
-
-```
-API_KEYS=irrisat_xxxxxxxxxxxxxxxxxxxxxxxxxxxx:gettiraput@gmail.com
-```
-
-คีย์ต้องยาวอย่างน้อย 24 ตัวอักษร (สั้นกว่านั้นระบบไม่รับ) หลายคีย์คั่นด้วยจุลภาค
-ยกเลิกคีย์ = ลบออกจาก `API_KEYS` แล้วรีสตาร์ต
+สำหรับ script / QGIS / Power BI — **ไม่ต้องล็อกอินและไม่ต้องใช้ API key**
+ส่ง**เฉพาะแปลงของ `gettiraput@gmail.com`** เท่านั้น (เปลี่ยนได้ด้วย `PUBLIC_API_OWNER` ใน `.env`)
+อ่านได้อย่างเดียว แก้/ลบแปลงไม่ได้ ใครมี URL ก็ดึงแปลงชุดนี้ได้ รวมทั้งรูปทรงแปลง
 
 | Path | คืนอะไร |
 | --- | --- |
@@ -657,11 +645,10 @@ API_KEYS=irrisat_xxxxxxxxxxxxxxxxxxxxxxxxxxxx:gettiraput@gmail.com
 `format=csv` (เส้นทาง `ndvi`, `timeseries`, `ndvi/latest`)
 
 ```powershell
-$h = @{ 'X-API-Key' = 'irrisat_xxxxxxxx' }
 $base = 'https://irrisat-thai-xxxxxxxx-uc.a.run.app/api/v1'
-Invoke-RestMethod "$base/areas" -Headers $h
-Invoke-RestMethod "$base/areas/<id>/ndvi?start=2026-06-01&end=2026-09-15" -Headers $h
-Invoke-WebRequest "$base/areas/<id>/timeseries?weather=1&format=csv" -Headers $h -OutFile ts.csv
+Invoke-RestMethod "$base/areas"
+Invoke-RestMethod "$base/areas/<id>/ndvi?start=2026-06-01&end=2026-09-15"
+Invoke-WebRequest "$base/areas/<id>/timeseries?weather=1&format=csv" -OutFile ts.csv
 ```
 
 **อ่านค่าให้ถูก**
@@ -676,8 +663,8 @@ Invoke-WebRequest "$base/areas/<id>/timeseries?weather=1&format=csv" -Headers $h
 
 **ข้อจำกัด**
 
-- จำกัด 60 คำขอ/นาที/คีย์ (`API_RATE_PER_MIN`) — เกินตอบ `429` พร้อม `Retry-After`
-- ไม่เปิด CORS — เรียกจากฝั่งเซิร์ฟเวอร์ / script เท่านั้น ห้ามฝังคีย์ในหน้าเว็บ
+- จำกัด 60 คำขอ/นาที/IP (`API_RATE_PER_MIN`) — เกินตอบ `429` พร้อม `Retry-After`
+- ไม่เปิด CORS — เรียกจากฝั่งเซิร์ฟเวอร์ / script เท่านั้น (กันหน้าเว็บอื่นเรียกจนโควตา Earth Engine หมด)
 - ครั้งแรกของแต่ละแปลงใช้เวลา 3-15 วินาทีต่อข้อมูล 1 ปี (แปลงใหญ่นานกว่า) ช่วงยาวถูกแบ่งส่งทีละปี พร้อมกัน 3 ก้อน
   ขอย้อนหลัง 10 ปีจึงรอราว 1 นาที ครั้งถัดไปได้จากแคชทันที (ปีที่ผ่านไปแล้วเก็บแคช 24 ชม. ช่วงล่าสุด 30 นาที)
 - ข้อมูลก่อนปี 2019 ควรใช้ `collection=LANDSAT` — Sentinel-2 ระดับ L2A ในไทยก่อนปลายปี 2018 มีน้อยมาก
@@ -689,9 +676,9 @@ Invoke-WebRequest "$base/areas/<id>/timeseries?weather=1&format=csv" -Headers $h
 ทดสอบกับเซิร์ฟเวอร์ที่เปิดอยู่: `npm run test:api`
 
 **Postman** — Import ไฟล์ `client/public/postman/IRRISAT-THAI-API-v1.postman_collection.json` (หรือดาวน์โหลดจากหน้า `/developers.html` ของเว็บ)
-แล้วใส่คีย์ในตัวแปร `apiKey` ของ collection (ไฟล์ไม่มีคีย์ติดมา) กด Send ที่ **01 รายการแปลง** ก่อน
+แล้วกด Send ที่ **01 รายการแปลง** ก่อน (ไม่ต้องใส่คีย์)
 ระบบจะเก็บ id ลง `areaId` ให้คำขออื่นใช้ต่อ — ตั้งตัวแปร `areaName` เพื่อเลือกแปลงตามชื่อ
-รันทั้งชุดจาก command line ได้ด้วย `npx newman run client/public/postman/IRRISAT-THAI-API-v1.postman_collection.json --env-var apiKey=<คีย์>`
+รันทั้งชุดจาก command line ได้ด้วย `npx newman run client/public/postman/IRRISAT-THAI-API-v1.postman_collection.json`
 
 ---
 

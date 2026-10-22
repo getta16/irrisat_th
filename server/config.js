@@ -58,24 +58,11 @@ export const AUTH_ENABLED = Boolean(GOOGLE_CLIENT_ID)
 export const LEGACY_OWNER_EMAIL = (process.env.LEGACY_OWNER_EMAIL || '').trim().toLowerCase()
 
 // ── API ภายนอก (/api/v1) ────────────────────────────────────────────────
-// ให้ script / QGIS / Power BI ดึงข้อมูลแปลง + NDVI + Kc ได้โดยไม่ต้องล็อกอินผ่านเบราว์เซอร์
-// แต่ละคีย์ผูกกับอีเมลเจ้าของ และเห็นได้เฉพาะแปลงของอีเมลนั้น คั่นหลายคีย์ด้วยจุลภาค
-//   API_KEYS=<คีย์ยาวอย่างน้อย 24 ตัว>:gettiraput@gmail.com,<คีย์อีกชุด>:malee@gmail.com
-// เว้นว่าง = ปิด /api/v1 ทั้งหมด
-export const API_KEYS = new Map(
-  (process.env.API_KEYS || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((pair) => {
-      const i = pair.lastIndexOf(':')
-      return i > 0 ? [pair.slice(0, i).trim(), pair.slice(i + 1).trim().toLowerCase()] : null
-    })
-    // คีย์สั้นเดาง่าย — ทิ้งไปเลยดีกว่าเปิดช่องโหว่เงียบ ๆ
-    .filter((kv) => kv && kv[0].length >= 24 && kv[1].includes('@'))
-)
+// ให้ script / QGIS / Power BI ดึงข้อมูลแปลง + NDVI + Kc ได้โดยไม่ต้องล็อกอินและไม่ต้องใช้คีย์
+// ส่งเฉพาะแปลงของอีเมลนี้เท่านั้น — แปลงของบัญชีอื่นไม่มีทางหลุดออกทาง API นี้
+export const PUBLIC_API_OWNER = (process.env.PUBLIC_API_OWNER || 'gettiraput@gmail.com').trim().toLowerCase()
 
-// จำนวนคำขอต่อนาทีต่อคีย์
+// จำนวนคำขอต่อนาทีต่อ IP
 export const API_RATE_PER_MIN = Number(process.env.API_RATE_PER_MIN || 60)
 
 // ช่วงวันที่ยาวที่สุดที่ขอได้ต่อครั้ง (ทั้งหน้าเว็บและ API) — ค่าเริ่มต้น 4,020 วัน = ย้อนหลังได้ถึง 1 ม.ค. ของ 10 ปีก่อน
