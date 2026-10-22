@@ -191,7 +191,6 @@ select {
   margin-bottom: 2px;
 }
 
-.header-select,
 .header-controls input[type='date'] {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.18);

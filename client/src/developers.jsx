@@ -20,7 +20,7 @@ import {
 } from 'recharts'
 import { api, publicApiBase } from './api.js'
 import { useAuth } from './useAuth.js'
-import { fmt, fmtArea, isoDate, shiftDays, thaiDate, downloadJson, historyYears, historyMinDate, yearLabel } from './utils.js'
+import { fmt, fmtArea, isoDate, shiftDays, thaiDate, downloadJson, historyMinDate } from './utils.js'
 import SignInButton from './components/SignInButton.jsx'
 import UserMenu from './components/UserMenu.jsx'
 import './styles.css'
@@ -84,8 +84,7 @@ function buildPath(ep, q) {
   const p = new URLSearchParams()
   if (ep.params.includes('geometry') && q.geometry) p.set('geometry', '1')
   if (ep.params.includes('range')) {
-    if (q.fromYear) p.set('fromYear', String(q.fromYear))
-    else if (q.start) p.set('start', q.start)
+    if (q.start) p.set('start', q.start)
     if (q.end) p.set('end', q.end)
   }
   if (ep.params.includes('days') && q.days) p.set('days', String(q.days))
@@ -136,7 +135,6 @@ function DevelopersPage() {
     areaId: '',
     start: DEFAULT_START,
     end: DEFAULT_END,
-    fromYear: '',
     collection: '',
     maxCloud: '',
     weather: true,
@@ -471,28 +469,8 @@ function Explorer({ areas, endpointId, setEndpointId, query, setQuery, base, inf
         {ep.params.includes('range') && (
           <>
             <label className="dev-field">
-              <span>ย้อนหลังถึงปี (fromYear)</span>
-              <select
-                value={query.fromYear}
-                onChange={(e) => setQuery((q) => ({ ...q, fromYear: e.target.value, start: e.target.value ? `${e.target.value}-01-01` : q.start }))}
-              >
-                <option value="">ไม่ใช้ — กำหนด start เอง</option>
-                {historyYears().map((y) => (
-                  <option key={y} value={y}>
-                    {yearLabel(y)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="dev-field">
               <span>start</span>
-              <input
-                type="date"
-                value={query.start}
-                min={historyMinDate()}
-                max={query.end}
-                onChange={(e) => setQuery((q) => ({ ...q, start: e.target.value, fromYear: '' }))}
-              />
+              <input type="date" value={query.start} min={historyMinDate()} max={query.end} onChange={set('start')} />
             </label>
             <label className="dev-field">
               <span>end</span>
